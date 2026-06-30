@@ -1,0 +1,56 @@
+﻿# Model checkpoints and weights (large binary files)
+checkpoints/
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.gguf
+
+# Downloaded datasets (re-downloadable)
+data/
+
+# Generated results (track selectively via git add -f for final submission)
+results/*.mp4
+results/*.gif
+results/*.png
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.eggs/
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets / local config
+.env
+*.local
+
+# WandB / experiment tracking
+wandb/
+outputs/
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz

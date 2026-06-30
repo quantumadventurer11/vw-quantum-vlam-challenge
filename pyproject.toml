@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "vlam-compress"
+version = "0.1.0"
+description = "Quantum-Inspired Tensor-Network Compression of OpenVLA-7B — VW Quantum+AI Challenge 2026"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    # Core ML stack
+    "torch>=2.3.0",
+    "torchvision>=0.18.0",
+    "transformers>=4.40.0",
+    "accelerate>=0.29.0",
+    "bitsandbytes>=0.43.0",
+    # Tensor network compression
+    "quimb>=1.8.0",
+    "tntorch>=0.4.0",
+    "opt-einsum>=3.3.0",
+    # Physics simulation
+    "mujoco>=3.1.0",
+    "dm-control>=1.0.20",
+    # Quantum computing (PennyLane appendix)
+    "pennylane>=0.36.0",
+    # Data
+    "datasets>=2.19.0",
+    "tensorflow-datasets>=4.9.0",
+    "tensorflow>=2.16.0",
+    # Monitoring / metrics
+    "pynvml>=11.5.0",
+    "numpy>=1.26.0",
+    "scipy>=1.13.0",
+    "matplotlib>=3.9.0",
+    "Pillow>=10.3.0",
+    # Utilities
+    "tqdm>=4.66.0",
+    "PyYAML>=6.0.1",
+    "huggingface-hub>=0.23.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
+    "ruff>=0.4.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

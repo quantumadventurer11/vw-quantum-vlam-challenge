@@ -1,0 +1,29 @@
+# Random seeds for the three independent evaluation runs required by §5.2 and §5.5.
+# These seeds control: evaluation episode ordering, any stochastic sampling in
+# inference, and numpy/torch global RNG state at the start of each run.
+# All three must be used and all three runs must be reported (mean ± std).
+seeds:
+  - 42
+  - 1337
+  - 2024
+
+# Bond dimensions to sweep for the Pareto curve (Phase 2 / Phase 3).
+bond_dims:
+  - 16
+  - 32
+  - 64
+  - 128
+
+# Evaluation settings
+eval:
+  n_episodes: 200          # held-out episodes from bridge_dataset
+  dataset_subset: bridge   # Open X-Embodiment subset used for evaluation
+  max_steps_per_episode: 50
+
+# Hardware declaration (fill in before Phase 3 runs; required for §6 Resource Declaration)
+hardware:
+  gpu_model: "FILL_IN"     # e.g. "NVIDIA RTX 4090"
+  gpu_count: 1
+  gpu_vram_gb: 24
+  cuda_version: "FILL_IN"  # e.g. "12.4"
+  driver_version: "FILL_IN"
