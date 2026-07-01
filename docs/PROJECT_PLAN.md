@@ -16,9 +16,19 @@
 | Accepted baseline | INT8 quantization via bitsandbytes |
 | Compression method | MPS/MPO tensor-network decomposition via **quimb** |
 | Training framework | PyTorch + HuggingFace Transformers |
-| Hardware | Single 24 GB consumer GPU (RTX 3090/4090 class) |
+| Hardware | Google Colab (free tier or Colab Pro; T4/A100 GPU provisioned per session) |
 | Memory strategy | 8-bit baseline load + gradient/activation checkpointing |
 | Bonus appendix | PennyLane: hardware-feasibility mapping (qubit count, circuit depth) |
+
+> **Execution environment**: The development machine has no NVIDIA GPU (Intel UHD
+> integrated graphics only). All GPU-dependent work (Phases 1–5) runs on **Google
+> Colab** (free tier or Colab Pro). Phases 1–5 are delivered as Jupyter notebooks in
+> `notebooks/`; each is self-contained with `!pip install` cells at the top because
+> Colab sessions start fresh. Notebooks install the repo package via
+> `!pip install -e .` so all reusable logic in `src/vlam_compress/` remains the
+> single source of truth. `dm_control` / MuJoCo dependency resolution is verified
+> fresh inside Colab — no local workaround assumptions carry over.
+> Phases 0, 6, and 7 do not require GPU and run locally via Makefile as before.
 
 > **License note**: OpenVLA-7B *code* is MIT. The *model weights* inherit the
 > **LLaMA-2 Community License (non-commercial research use only)**. Every
@@ -48,8 +58,8 @@ covered by a specific phase. Nothing is silently dropped.
 |---|---|---|---|
 | Efficiency Gain | Wall-clock inference time reduction (%) vs. INT8 baseline; also FLOPs proxy via parameter count | ≥10% improvement | Phase 3 |
 | Compression vs. Accuracy | Parameter reduction ratio + action-prediction accuracy on held-out OXE split; Pareto curve across bond dimensions | ≤5% accuracy drop at ≥2x compression | Phase 3 |
-| Latency on Reference Profile | End-to-end inference time (ms) on 24 GB GPU, clearly stated; compressed model must be ≤100 ms | ≤100 ms on stated hardware | Phase 3 |
-| Reproducibility | End-to-end clean-env test via `make repro`; seeds + hardware + hyperparams in repo | Full clean-env replication | Phase 7 |
+| Latency on Reference Profile | End-to-end inference time (ms) on Colab GPU (T4/A100), clearly stated; compressed model must be ≤100 ms | ≤100 ms on stated hardware | Phase 3 |
+| Reproducibility | End-to-end clean-env test by running Colab notebooks via "Run all"; seeds + hardware + hyperparams in repo | Full clean-env replication | Phase 7 |
 | Quantum Justification | Ablation: (A) INT8-only baseline vs. (B) INT8 + TN compression; quantifies the delta attributable to TN step | Ablation mandatory | Phase 3 |
 
 ### §4.2 Secondary Objectives
@@ -87,16 +97,18 @@ covered by a specific phase. Nothing is silently dropped.
   `torch`, `transformers`, `bitsandbytes`, `accelerate`, `quimb`, `tntorch`,
   `mujoco`, `dm_control`, `pennylane`, `pynvml`, `datasets`, `tensorflow-datasets`
 - `src/` package structure (`vlam_compress/`)
-- `Makefile` with targets: `install`, `test`, `baseline`, `compress`, `eval`, `repro`
+- `notebooks/` directory scaffold (one `.ipynb` stub per phase 1–5)
+- `Makefile` with targets: `install`, `test`, `repro` (GPU phases delegated to
+  notebooks; `repro` documents the Colab workflow rather than running locally)
 - `.gitignore`, `LICENSE` (MIT for code; model weight license caveat in README)
 - `docs/ATTRIBUTIONS.md` initialised
 - GitHub repo is public
 
 #### Verification
-- `pip install -e .[dev]` completes in a clean venv with no errors
-- `python -c "import vlam_compress; print('ok')"` succeeds
-- `python -c "import torch; print(torch.cuda.get_device_name(0))"` confirms GPU
-- `python -c "import quimb; import mujoco; print('ok')"` confirms all core deps
+- `pip install -e .[dev]` completes in a clean local venv with no errors (CPU only; no GPU required for scaffolding)
+- `python -c "import vlam_compress; print('ok')"` succeeds locally
+- Inside Colab: `!pip install -e . && python -c "import torch; print(torch.cuda.get_device_name(0))"` confirms GPU and package install
+- Inside Colab: `!python -c "import quimb; import mujoco; print('ok')"` confirms all core GPU-phase deps
 
 #### Challenge sections satisfied
 - §5.2 (public repo prerequisite), §5.5 Reproducibility (foundation)
@@ -105,11 +117,15 @@ covered by a specific phase. Nothing is silently dropped.
 
 ### Phase 1: Baseline Reproduction
 
-**Duration estimate**: 2-3 days | **GPU time**: ~3-5 GPU-hours
+**Duration estimate**: 2-3 days | **GPU time**: ~3-5 GPU-hours  
+**Execution**: Google Colab — `notebooks/phase1_baseline.ipynb`
 
 #### Task Description
 Load OpenVLA-7B in INT8 via bitsandbytes (the accepted baseline per §5.4 Robotics
 Compression), establish all measurements that will be compared against in Phase 3.
+The notebook is self-contained: the first cell installs all dependencies via
+`!pip install` and installs the repo package via `!pip install -e .` (after cloning
+from GitHub or uploading via Drive).
 
 #### Steps
 1. Download `openvla/openvla-7b` from HuggingFace Hub using
@@ -134,11 +150,12 @@ Compression), establish all measurements that will be compared against in Phase 
    - GPU power draw (W) via `pynvml`; compute total kWh
 5. Save results to `results/baseline_metrics.json`.
 
-#### Verification
+#### Verification (inside Colab)
 - Parameter count matches expected ~7.5 B for OpenVLA-7B architecture.
-- INT8 peak memory is below 10 GB (well within 24 GB budget).
-- Inference time per sample is in a reasonable range for a 7B model on the GPU.
-- `results/baseline_metrics.json` contains all five metric types listed above.
+- INT8 peak memory is below the Colab GPU VRAM budget (T4: 16 GB; A100: 40 GB).
+- Inference time per sample is in a reasonable range for a 7B model on the Colab GPU.
+- `results/baseline_metrics.json` is written to Drive or downloaded; contains all five metric types.
+- Notebook runs end-to-end via "Run all" with no manual intervention (seeds from `configs/seeds.yaml`).
 
 #### Challenge sections satisfied
 - §5.4 (accepted baseline established), §5.5 (Compression vs. Accuracy baseline,
@@ -148,12 +165,15 @@ Compression), establish all measurements that will be compared against in Phase 
 
 ### Phase 2: Tensor-Network Compression Implementation
 
-**Duration estimate**: 4-6 days | **GPU time**: ~6-16 GPU-hours
+**Duration estimate**: 4-6 days | **GPU time**: ~6-16 GPU-hours  
+**Execution**: Google Colab — `notebooks/phase2_compression.ipynb`
 
 #### Task Description
 Implement MPS (Matrix Product State) / MPO (Matrix Product Operator) decomposition
 of OpenVLA-7B weight matrices using quimb, following the CompactifAI [1] methodology.
 This is the **quantum-inspired component** required by §5.2.
+All compression logic is implemented in `src/vlam_compress/compress.py`; the notebook
+imports it and orchestrates the bond-dimension sweep and checkpoint saving.
 
 #### Theoretical Motivation (for report)
 MPS/MPO decomposition represents a weight matrix W in R^(m x n) as a product of
@@ -186,11 +206,12 @@ many-body physics.
    weights for maximum memory efficiency (TN compression + INT8 combined pipeline).
 5. Save compressed model checkpoints to `checkpoints/compressed_chi{X}/`.
 
-#### Verification
+#### Verification (inside Colab)
 - Compressed model loads without error and runs a forward pass on a sample input.
 - Parameter counts match theoretical values for each X.
 - For X=64, reconstruction error (Frobenius norm ratio ||W - W_hat|| / ||W||) < 5% per layer.
-- All four bond-dimension checkpoints are saved and loadable.
+- All four bond-dimension checkpoints are saved to Google Drive or downloaded as archives.
+- Notebook runs end-to-end via "Run all."
 
 #### Challenge sections satisfied
 - §5.2 (functional QI component), §4.1 (reduced parameter count), §5.1 (Model Footprint),
@@ -198,18 +219,23 @@ many-body physics.
 
 **Compute note**: SVD-based MPS decomposition runs on CPU or GPU. For a single 7B
 model with ~250 transformer linear layers, expect 30-120 min per bond dimension on
-a single GPU (dominant cost is repeated SVD of large matrices). Total: ~4-8 hours
-for all four X values.
+a Colab GPU (T4 or A100); GPU-accelerated SVD via `torch.linalg.svd` (cuSOLVER) is
+preferred. Total: ~4-8 hours across all four X values. Colab Pro session limits apply;
+plan to run one or two bond dimensions per session and save checkpoints to Drive between
+sessions.
 
 ---
 
 ### Phase 3: Evaluation, Ablation & Pareto Analysis
 
-**Duration estimate**: 3-4 days | **GPU time**: ~8-12 GPU-hours
+**Duration estimate**: 3-4 days | **GPU time**: ~8-12 GPU-hours  
+**Execution**: Google Colab — `notebooks/phase3_evaluation.ipynb`
 
 #### Task Description
 Produce all §5.5 benchmark numbers with mean ± std across at least 3 runs, and
 the mandatory ablation isolating the TN component.
+Evaluation logic lives in `src/vlam_compress/metrics.py`; the notebook loads
+checkpoints from Drive, runs all benchmark conditions, and writes result JSONs.
 
 #### Steps
 1. **Inference benchmark** (3 independent runs per model variant).
@@ -250,12 +276,13 @@ the mandatory ablation isolating the TN component.
 
 7. Save all results to `results/eval_summary.json` and `results/ablation.json`.
 
-#### Verification
+#### Verification (inside Colab)
 - `results/eval_summary.json` contains all five §5.5 benchmark fields for all model variants.
 - Each metric has `mean`, `std`, and `n_runs >= 3` fields.
 - Pareto curve covers at least 4 compression levels.
 - Ablation table clearly shows delta L1 error attributable to TN step.
 - If efficiency gain < 10% or accuracy drop > 5%, this is flagged and explained (not silently hidden).
+- All result files are saved to Drive and committed to the repo as artifacts.
 
 #### Challenge sections satisfied
 - §5.2 (quantitative results, mean ± std, at least 3 runs), §5.5 (all five benchmarks),
@@ -263,16 +290,22 @@ the mandatory ablation isolating the TN component.
 
 **Compute note**: Inference-only evaluation is fast. A 200-sample batch at ~300 ms/sample
 = ~1 min per run. Budget ~8-12 GPU-hours total across all model variants and 3 runs each.
+Latency results are stated for the Colab GPU type used (T4 or A100); the hardware profile
+(GPU model, VRAM, CUDA version, driver) is logged by the notebook and included in the report.
 
 ---
 
 ### Phase 4: MuJoCo 3D Visualization
 
-**Duration estimate**: 3-4 days | **GPU time**: ~1-2 GPU-hours
+**Duration estimate**: 3-4 days | **GPU time**: ~1-2 GPU-hours  
+**Execution**: Google Colab — `notebooks/phase4_mujoco_viz.ipynb`
 
 #### Task Description
 Drive a MuJoCo humanoid figure with action outputs from the compressed OpenVLA-7B
 model (X=64 checkpoint) and render a 3D visualization of the executed task.
+`dm_control` and MuJoCo installation are handled by the notebook's setup cell
+(`!pip install dm-control mujoco`); dependency resolution is verified fresh inside
+Colab without assumptions from any prior local environment.
 
 #### Architecture
 
@@ -310,25 +343,27 @@ compressed model's intended end-effector trajectory, giving a physically interpr
    - Outputs `results/demo_compressed_chi64.mp4` and `.gif`
 4. Annotate rendered video with overlays: action values, compression ratio, language instruction.
 
-#### Verification
-- `python scripts/visualize.py` runs end-to-end without error.
+#### Verification (inside Colab)
+- Notebook runs end-to-end via "Run all."
 - Output video `demo_compressed_chi64.mp4` is at least 5 seconds; humanoid arm is visibly moving.
 - The arm trajectory is non-trivial (not stationary, responds differently to different instructions).
 - Side-by-side comparison: INT8 baseline arm trajectory vs. compressed model arm trajectory on same input.
+- Video is downloaded from Colab and committed to `results/`.
 
 #### Challenge sections satisfied
 - User requirement: "3D visualization showing a humanoid figure executing a task, driven
   by the compressed model's outputs, using MuJoCo"
 
-**Compute note**: MuJoCo physics and rendering run on CPU. Inference for each frame
-requires one GPU forward pass (~300 ms). 200 steps = ~1 min of wall-clock per episode.
-Budget ~2 GPU-hours for development and rendering iterations.
+**Compute note**: MuJoCo physics and rendering run on CPU inside Colab. Inference for
+each frame requires one GPU forward pass (~300 ms on T4). 200 steps ≈ 1 min wall-clock
+per episode. Budget ~2 GPU-hours for development and rendering iterations.
 
 ---
 
 ### Phase 5: PennyLane Hardware-Feasibility Appendix (Bonus)
 
-**Duration estimate**: 2-3 days | **GPU time**: 0 (CPU-only PennyLane simulation)
+**Duration estimate**: 2-3 days | **GPU time**: 0 (CPU-only PennyLane simulation)  
+**Execution**: Google Colab — `notebooks/phase5_pennylane.ipynb` (CPU runtime sufficient; no GPU needed)
 
 #### Task Description
 Map the achieved MPS compression (bond dimension X, tensor ranks) to estimates of
@@ -352,10 +387,11 @@ near-term quantum hardware requirements, satisfying §4.2 "Hardware pathway."
    - Comment on current hardware capability (e.g., IBM Heron r2: 133 qubits)
 4. Write as `docs/appendix_pennylane.md`; embed abbreviated version in report appendix.
 
-#### Verification
+#### Verification (inside Colab)
 - PennyLane simulation runs for the toy circuit without error.
 - Feasibility table is complete for all four X values.
 - At least one X value is within reach of near-term hardware (qubit count ≤ 1000).
+- Notebook runs end-to-end via "Run all"; output markdown is downloaded and committed to `docs/appendix_pennylane.md`.
 
 #### Challenge sections satisfied
 - §4.2 (Hardware pathway: qubit count, circuit depth, noise sensitivity),
@@ -429,16 +465,19 @@ Ensure the repository satisfies §5.5 Reproducibility: full clean-environment
 replication with no manual intervention.
 
 #### Steps
-1. **README.md** (root) — one-command setup and run:
+1. **README.md** (root) — two-path replication instructions:
    ```
+   # Local (no GPU — scaffolding and report only)
    git clone <repo>
    cd vw-quantum-vlam-challenge
-   pip install -e .
-   make baseline   # Phase 1
-   make compress   # Phase 2 (all X values)
-   make eval       # Phase 3
-   make visualize  # Phase 4
-   make report     # compile PDF
+   pip install -e .[dev]
+   make test        # unit tests for compress.py, metrics.py, mujoco_bridge.py
+
+   # GPU phases (Phases 1–5) — Google Colab
+   # 1. Open each notebook in notebooks/ via Google Colab.
+   # 2. The first cell clones this repo and runs: !pip install -e .
+   # 3. Run all cells. Seeds are fixed in configs/seeds.yaml [42, 1337, 2024].
+   # 4. Download result files from Colab to results/ and commit.
    ```
    README must include prominently:
    - Code license: MIT
@@ -446,27 +485,31 @@ replication with no manual intervention.
      only). Users must accept the LLaMA-2 license before downloading weights via
      HuggingFace Hub.**
 2. **`configs/`**: YAML files with all hyperparameters, random seeds (3 per run),
-   hardware spec template.
+   and a `hardware_profile.yaml` that records the Colab GPU type, VRAM, CUDA version,
+   and driver used during the submission runs.
 3. **`configs/seeds.yaml`**: seeds [42, 1337, 2024] documented.
 4. **`docs/ATTRIBUTIONS.md`**: final review — every repo, paper, and dataset listed.
-5. **Clean-environment test**: run full pipeline in a fresh conda environment;
-   verify `results/eval_summary.json` matches committed baseline values.
+5. **Reproducibility test**: open `notebooks/phase3_evaluation.ipynb` in a fresh
+   Colab session, run all cells with the committed `configs/seeds.yaml`, and verify
+   `results/eval_summary.json` matches committed baseline values within floating-point
+   tolerance. This replaces the local `make repro` target as the canonical replication check.
 6. **Health check before final push**:
-   - All imports resolve
+   - All imports resolve locally (`pip install -e .[dev]`)
    - `make test` passes (unit tests for TN compression, action mapping, metric calculation)
    - README installation instructions succeed
-   - No hardcoded absolute paths
+   - No hardcoded absolute paths in any notebook or source file
 7. **Final commit + tag**: `v1.0.0-submission`
 
 #### Verification
-- `make repro` runs end-to-end from a clean venv without errors.
+- Notebooks run end-to-end via "Run all" in a fresh Colab session (reproducibility standard).
 - `results/eval_summary.json` is reproducible within floating-point tolerance for documented seeds.
 - ATTRIBUTIONS.md contains at least 8 entries (repos + papers + dataset).
 - Report PDF compiles without errors.
 - README's first prominent section after the title includes the model weight license caveat.
+- `configs/hardware_profile.yaml` documents the exact Colab GPU environment used for submission results.
 
 #### Challenge sections satisfied
-- §5.2 (public repo + README), §5.5 Reproducibility (full clean-env replication),
+- §5.2 (public repo + README), §5.5 Reproducibility (full clean-env replication via Colab notebooks),
   §5.3 (all resource assumptions explicitly stated)
 
 ---
@@ -485,10 +528,11 @@ replication with no manual intervention.
 | 7 | Repo Polish & Validation | 1-2 | 1 |
 | **Total** | | **~19-28 days** | **~20-36 GPU-hours** |
 
-**Compute note**: Phase 2 dominates. SVD decomposition of 7B model weight matrices
-can be CPU-bound and highly dependent on matrix sizes and number of layers targeted.
-The range 6-16 GPU-hours assumes GPU-accelerated SVD via cuSOLVER (PyTorch). Pure
-CPU SVD could take 2-4x longer.
+**Compute note**: Phase 2 dominates. All GPU-hours are consumed on Google Colab
+(free tier or Colab Pro). SVD decomposition of 7B model weight matrices benefits
+strongly from GPU-accelerated `torch.linalg.svd` (cuSOLVER). On a T4 (free tier),
+each bond-dimension pass may take 1-2 hours; on an A100 (Colab Pro), 30-60 min.
+Plan to checkpoint to Google Drive between Colab sessions to avoid losing progress.
 
 ---
 
