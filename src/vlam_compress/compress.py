@@ -23,6 +23,11 @@ from typing import Optional
 import torch
 import torch.nn as nn
 
+try:
+    from bitsandbytes.nn import Linear8bitLt as _Linear8bitLt
+    _LINEAR_TYPES: tuple = (nn.Linear, _Linear8bitLt)
+except ImportError:
+    _LINEAR_TYPES: tuple = (nn.Linear,)
 
 # Linear-layer suffixes targeted in the LLM backbone (Vicuna-v1.5 / LLaMA-2).
 DEFAULT_TARGET_SUFFIXES: tuple[str, ...] = (
@@ -230,7 +235,7 @@ def find_compression_targets(
     """
     targets: dict[str, nn.Module] = {}
     for name, module in model.named_modules():
-        if not isinstance(module, nn.Linear):
+        if not isinstance(module, _LINEAR_TYPES):
             continue
         if not any(name.endswith(sfx) for sfx in target_suffixes):
             continue
