@@ -38,7 +38,7 @@ get_status() {
 
 extract_errors() {
     local nb_file="$1"
-    python3 - "$nb_file" <<'PYEOF'
+    python - "$nb_file" <<'PYEOF'
 import json, sys, re
 
 try:
@@ -125,7 +125,7 @@ while [[ $elapsed -lt $MAX_WAIT_S ]]; do
             if [[ -n "$METRICS" ]]; then
                 echo ""
                 log "=== Baseline Metrics Summary ==="
-                python3 - "$METRICS" <<'PYEOF'
+                python - "$METRICS" <<'PYEOF'
 import json, sys
 m = json.load(open(sys.argv[1]))
 agg = m.get('aggregate', {})
