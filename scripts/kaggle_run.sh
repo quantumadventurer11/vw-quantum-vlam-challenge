@@ -27,11 +27,13 @@ POLL_INTERVAL_S=30
 log() { echo "[$(date '+%H:%M:%S')] $*"; }
 
 get_status() {
-    # kaggle kernels status output (second data row, last field):
-    # ref                              totalVotes  status
-    # -------------------------------  ----------  --------
-    # benjaminbrumm/vw-phase1-baseline  0           running
-    kaggle kernels status "$KERNEL_ID" 2>/dev/null | awk 'NR==3{print $NF}'
+    # kaggle kernels status output (API v2):
+    #   benjaminbrumm/vw-phase1-baseline has status "KernelWorkerStatus.RUNNING"
+    # Extract the bare status token after the last dot.
+    local raw
+    raw=$(PYTHONUTF8=1 kaggle kernels status "$KERNEL_ID" 2>/dev/null)
+    # e.g. "KernelWorkerStatus.COMPLETE" → "COMPLETE"
+    echo "$raw" | grep -oP 'KernelWorkerStatus\.\K[A-Z_]+' | tr '[:upper:]' '[:lower:]'
 }
 
 extract_errors() {
@@ -73,7 +75,7 @@ PYEOF
 
 # ── Push ──────────────────────────────────────────────────────────────────────
 log "Pushing kernel from '$META_DIR/' to Kaggle..."
-kaggle kernels push -p "$META_DIR"
+PYTHONUTF8=1 kaggle kernels push -p "$META_DIR"
 log "Pushed. Polling every ${POLL_INTERVAL_S}s (max ${MAX_WAIT_S}s)..."
 echo ""
 
@@ -91,7 +93,7 @@ while [[ $elapsed -lt $MAX_WAIT_S ]]; do
 
             mkdir -p "$OUTPUT_DIR"
             log "Pulling output to $OUTPUT_DIR/ ..."
-            kaggle kernels output "$KERNEL_ID" -p "$OUTPUT_DIR"
+            PYTHONUTF8=1 kaggle kernels output "$KERNEL_ID" -p "$OUTPUT_DIR"
             echo ""
             log "Output files:"
             find "$OUTPUT_DIR" -type f | sort | while read -r f; do
@@ -154,7 +156,7 @@ PYEOF
 
             mkdir -p "$OUTPUT_DIR"
             log "Pulling output for post-mortem..."
-            kaggle kernels output "$KERNEL_ID" -p "$OUTPUT_DIR" || true
+            PYTHONUTF8=1 kaggle kernels output "$KERNEL_ID" -p "$OUTPUT_DIR" || true
 
             NB_OUT=$(find "$OUTPUT_DIR" -name "*.ipynb" | head -1)
             if [[ -n "$NB_OUT" ]]; then
