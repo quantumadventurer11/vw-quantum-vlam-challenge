@@ -1,0 +1,15 @@
+{
+  "id": "benjaminbrumm/vw-phase1-baseline",
+  "id_no": null,
+  "title": "VW Phase 1 Baseline",
+  "code_file": "phase1_baseline.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": true,
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": []
+}
