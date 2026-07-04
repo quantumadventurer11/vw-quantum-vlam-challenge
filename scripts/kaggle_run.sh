@@ -76,11 +76,13 @@ PYEOF
 # ── Push ──────────────────────────────────────────────────────────────────────
 log "Pushing kernel from '$META_DIR/' to Kaggle..."
 PYTHONUTF8=1 kaggle kernels push -p "$META_DIR"
-log "Pushed. Polling every ${POLL_INTERVAL_S}s (max ${MAX_WAIT_S}s)..."
+log "Pushed. Waiting 90s for Kaggle to register the new run (avoids stale ERROR status)..."
+sleep 90
+log "Starting poll every ${POLL_INTERVAL_S}s (max ${MAX_WAIT_S}s)..."
 echo ""
 
 # ── Poll ──────────────────────────────────────────────────────────────────────
-elapsed=0
+elapsed=90
 while [[ $elapsed -lt $MAX_WAIT_S ]]; do
     status=$(get_status)
     log "Status: ${status:-<empty>}  (${elapsed}s elapsed)"
