@@ -42,7 +42,7 @@ extract_errors() {
 import json, sys, re
 
 try:
-    nb = json.load(open(sys.argv[1]))
+    nb = json.load(open(sys.argv[1], encoding='utf-8'))
 except Exception as e:
     print(f"Could not parse notebook: {e}")
     sys.exit(0)
