@@ -331,7 +331,7 @@ def load_compressed_model(
     """
     import torch
     import torch.nn as nn
-    from transformers import AutoModelForVision2Seq, AutoProcessor
+    from transformers import AutoModelForVision2Seq, AutoProcessor, BitsAndBytesConfig
     from vlam_compress.compress import mps_reconstruct
 
     cores_path = Path(checkpoints_base) / f"compressed_chi{chi}" / "cores.pt"
@@ -345,10 +345,14 @@ def load_compressed_model(
     processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
 
     print("Loading model in INT8 ...")
+    bnb_config = BitsAndBytesConfig(
+        load_in_8bit=True,
+        llm_int8_enable_fp32_cpu_offload=True,
+    )
     model = AutoModelForVision2Seq.from_pretrained(
         model_id,
         attn_implementation="eager",
-        load_in_8bit=True,
+        quantization_config=bnb_config,
         device_map="auto",
         trust_remote_code=True,
     )
