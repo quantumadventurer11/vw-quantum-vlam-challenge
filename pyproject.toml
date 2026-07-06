@@ -10,11 +10,11 @@ requires-python = ">=3.10"
 license = { text = "MIT" }
 dependencies = [
     # Core ML stack
-    "torch>=2.3.0",
-    "torchvision>=0.18.0",
+    "torch>=2.2.0",
+    "torchvision>=0.17.2",
     "transformers>=4.40.0",
-    "accelerate>=0.29.0",
-    "bitsandbytes>=0.43.0",
+    "accelerate>=0.27.0",
+    "bitsandbytes>=0.43.0,<0.49.0",
     # Tensor network compression
     "quimb>=1.8.0",
     "tntorch>=0.4.0",
