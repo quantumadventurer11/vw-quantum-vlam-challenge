@@ -1,8 +1,8 @@
 {
-  "id": "benjaminbrumm/vw-phase1-baseline",
+  "id": "benjaminbrumm/vw-phase2-compression",
   "id_no": null,
-  "title": "VW Phase1 Baseline",
-  "code_file": "phase1_baseline.ipynb",
+  "title": "VW Phase2 Compression",
+  "code_file": "phase2_compression.ipynb",
   "language": "python",
   "kernel_type": "notebook",
   "is_private": true,
