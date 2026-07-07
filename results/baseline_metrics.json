@@ -1,0 +1,149 @@
+{
+  "phase": 1,
+  "model": "openvla/openvla-7b",
+  "model_variant": "FP16_baseline",
+  "unnorm_key": "toto",
+  "dataset": "lerobot/toto",
+  "data_note": "synthetic 224x224 RGB images; real 7-DoF actions from lerobot/toto parquet. L1 error is a synthetic baseline valid for Phase 2 delta comparison.",
+  "seeds": [
+    42,
+    1337,
+    2024
+  ],
+  "n_eval_episodes_per_run": 200,
+  "hardware": {
+    "gpu_name": "Tesla P100-PCIE-16GB",
+    "gpu_vram_gb": 15.89,
+    "gpu_multi_proc": 56,
+    "cuda_version": "11.8",
+    "driver_version": "580.159.04",
+    "torch_version": "2.2.2+cu118",
+    "transformers_version": "4.40.1",
+    "bitsandbytes_version": "0.43.3",
+    "platform": "Linux-6.12.90+-x86_64-with-glibc2.35",
+    "n_params_total": 7541237184,
+    "n_params_b": 7.541,
+    "peak_mem_load_mib": 13791.7,
+    "model_precision": "FP16",
+    "sm_version": "sm_60"
+  },
+  "per_seed": {
+    "42": {
+      "seed": 42,
+      "n_samples": 200,
+      "n_skipped": 0,
+      "l1_error_mean": 0.2809107678051362,
+      "l1_error_std": 0.113015626995575,
+      "inference_time_ms_mean": 2097.1239453300063,
+      "inference_time_ms_std": 13.39207231402768,
+      "peak_mem_mib_mean": 14345.6025390625,
+      "peak_mem_mib_std": 0.0,
+      "avg_power_w": 46.627865,
+      "wall_time_s": 449.84,
+      "total_kwh": 0.005826,
+      "co2e_g": 2.249
+    },
+    "1337": {
+      "seed": 1337,
+      "n_samples": 200,
+      "n_skipped": 0,
+      "l1_error_mean": 0.2880233844635759,
+      "l1_error_std": 0.1122033482341088,
+      "inference_time_ms_mean": 2094.102479229996,
+      "inference_time_ms_std": 14.696069731938165,
+      "peak_mem_mib_mean": 14345.6025390625,
+      "peak_mem_mib_std": 0.0,
+      "avg_power_w": 48.1031425,
+      "wall_time_s": 450.03,
+      "total_kwh": 0.006013,
+      "co2e_g": 2.3211
+    },
+    "2024": {
+      "seed": 2024,
+      "n_samples": 200,
+      "n_skipped": 0,
+      "l1_error_mean": 0.2856212214538158,
+      "l1_error_std": 0.10720742763517523,
+      "inference_time_ms_mean": 2095.6783704400123,
+      "inference_time_ms_std": 12.563427272778465,
+      "peak_mem_mib_mean": 14345.6025390625,
+      "peak_mem_mib_std": 0.0,
+      "avg_power_w": 49.844325,
+      "wall_time_s": 450.2,
+      "total_kwh": 0.006233,
+      "co2e_g": 2.406
+    }
+  },
+  "aggregate": {
+    "l1_error": {
+      "mean": 0.28485179124084264,
+      "std": 0.0029542450893536762,
+      "n_runs": 3,
+      "values": [
+        0.2809107678051362,
+        0.2880233844635759,
+        0.2856212214538158
+      ]
+    },
+    "inference_time_ms": {
+      "mean": 2095.6349316666715,
+      "std": 1.2338907416920708,
+      "n_runs": 3,
+      "values": [
+        2097.1239453300063,
+        2094.102479229996,
+        2095.6783704400123
+      ]
+    },
+    "peak_mem_mib": {
+      "mean": 14345.6025390625,
+      "std": 0.0,
+      "n_runs": 3,
+      "values": [
+        14345.6025390625,
+        14345.6025390625,
+        14345.6025390625
+      ]
+    },
+    "avg_power_w": {
+      "mean": 48.1917775,
+      "std": 1.3146091574605603,
+      "n_runs": 3,
+      "values": [
+        46.627865,
+        48.1031425,
+        49.844325
+      ]
+    },
+    "total_kwh": {
+      "mean": 0.006023999999999999,
+      "std": 0.00016633901125913517,
+      "n_runs": 3,
+      "values": [
+        0.005826,
+        0.006013,
+        0.006233
+      ]
+    },
+    "co2e_g": {
+      "mean": 2.325366666666667,
+      "std": 0.06416594804792407,
+      "n_runs": 3,
+      "values": [
+        2.249,
+        2.3211,
+        2.406
+      ]
+    },
+    "wall_time_s": {
+      "mean": 450.0233333333333,
+      "std": 0.14704496666742395,
+      "n_runs": 3,
+      "values": [
+        449.84,
+        450.03,
+        450.2
+      ]
+    }
+  }
+}
