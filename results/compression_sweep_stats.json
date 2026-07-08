@@ -1,0 +1,73 @@
+{
+  "phase": 2,
+  "model": "openvla/openvla-7b",
+  "n_sites": 4,
+  "target_suffixes": [
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj",
+    "gate_proj",
+    "up_proj",
+    "down_proj"
+  ],
+  "n_target_layers": 224,
+  "n_target_params_orig": 6476005376,
+  "n_total_params": 7541237184,
+  "sweep_stats": {
+    "16": {
+      "bond_dim": 16,
+      "n_layers_compressed": 217,
+      "total_target_params_orig": 6273630208,
+      "total_core_params": 8799040,
+      "layer_compression_ratio_mean": 680.57,
+      "layer_compression_ratio_min": 481.88,
+      "frob_error_mean": 0.9957497419354839,
+      "frob_error_max": 0.999248,
+      "frob_error_p95": 0.9991534,
+      "elapsed_s": 89.8
+    },
+    "32": {
+      "bond_dim": 32,
+      "n_layers_compressed": 217,
+      "total_target_params_orig": 6273630208,
+      "total_core_params": 34200192,
+      "layer_compression_ratio_mean": 175.2114285714285,
+      "layer_compression_ratio_min": 124.12,
+      "frob_error_mean": 0.9851774331797235,
+      "frob_error_max": 0.996906,
+      "frob_error_p95": 0.9962483999999999,
+      "elapsed_s": 434.1
+    },
+    "64": {
+      "bond_dim": 64,
+      "n_layers_compressed": 217,
+      "total_target_params_orig": 6273630208,
+      "total_core_params": 134808832,
+      "layer_compression_ratio_mean": 44.46714285714285,
+      "layer_compression_ratio_min": 31.51,
+      "frob_error_mean": 0.9398072903225806,
+      "frob_error_max": 0.986189,
+      "frob_error_p95": 0.9814088,
+      "elapsed_s": 1065.8
+    },
+    "128": {
+      "bond_dim": 128,
+      "n_layers_compressed": 217,
+      "total_target_params_orig": 6273630208,
+      "total_core_params": 312184632,
+      "layer_compression_ratio_mean": 18.99428571428571,
+      "layer_compression_ratio_min": 15.88,
+      "frob_error_mean": 0.8972305990783411,
+      "frob_error_max": 0.955865,
+      "frob_error_p95": 0.9521892,
+      "elapsed_s": 1101.0
+    }
+  },
+  "bond_dims_processed": [
+    16,
+    32,
+    64,
+    128
+  ]
+}
