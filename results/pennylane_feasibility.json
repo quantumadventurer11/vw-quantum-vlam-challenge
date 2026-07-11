@@ -1,0 +1,61 @@
+{
+  "phase": 5,
+  "method": "MPS bond-dimension to quantum-circuit mapping",
+  "reference": "Kerenidis & Prakash 2017 (arXiv:1704.04992); Reck et al. 1994",
+  "challenge_section": "Appendix C (\u00a74.2 bonus \u2014 hardware feasibility)",
+  "n_sites": 4,
+  "n_bonds": 3,
+  "nisq_gate_budget": 10000,
+  "bond_dims": [
+    {
+      "chi": 16,
+      "bond_qubits": 4,
+      "total_bond_q": 12,
+      "cnot_depth_per_bond": 29,
+      "total_cnot_depth": 87,
+      "core_params_M": 0.03,
+      "compression_ratio": 481.9
+    },
+    {
+      "chi": 32,
+      "bond_qubits": 5,
+      "total_bond_q": 15,
+      "cnot_depth_per_bond": 61,
+      "total_cnot_depth": 183,
+      "core_params_M": 0.14,
+      "compression_ratio": 124.1
+    },
+    {
+      "chi": 64,
+      "bond_qubits": 6,
+      "total_bond_q": 18,
+      "cnot_depth_per_bond": 125,
+      "total_cnot_depth": 375,
+      "core_params_M": 0.53,
+      "compression_ratio": 31.5
+    },
+    {
+      "chi": 128,
+      "bond_qubits": 7,
+      "total_bond_q": 21,
+      "cnot_depth_per_bond": 253,
+      "total_cnot_depth": 759,
+      "core_params_M": 2.11,
+      "compression_ratio": 7.9
+    }
+  ],
+  "circuit_demo": {
+    "chi": 16,
+    "qubits": 4,
+    "n_givens_gates": 23,
+    "pennylane_device": "default.qubit",
+    "gate_type": "qml.SingleExcitation",
+    "note": "qml.SingleExcitation implements the Givens rotation in the {|01>,|10>} subspace"
+  },
+  "feasibility_verdict": {
+    "chi_16": "feasible on near-term NISQ (total depth ~87, within 10k gate budget)",
+    "chi_32": "borderline (total depth 183; feasible with error mitigation)",
+    "chi_64": "beyond near-term coherence (total depth 375; requires error correction)",
+    "chi_128": "requires fault-tolerant hardware (total depth 759)"
+  }
+}
