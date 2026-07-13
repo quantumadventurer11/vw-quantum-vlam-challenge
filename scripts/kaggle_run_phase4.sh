@@ -13,7 +13,7 @@
 
 set -euo pipefail
 
-KERNEL_ID="benjaminbrumm/vw-phase4-visualization"
+KERNEL_ID="benjaminbrumm/vw-phase-4-mujoco-visualization"
 OUTPUT_DIR="kaggle_output_phase4"
 MAX_WAIT_S=14400     # 4-hour hard timeout (2× 200-step episodes + model load)
 POLL_INTERVAL_S=60
@@ -68,8 +68,11 @@ cp notebooks/phase4_mujoco_viz.ipynb "$STAGE_DIR/"
 
 cat > "$STAGE_DIR/kernel-metadata.json" <<'METADATA'
 {
-  "id": "benjaminbrumm/vw-phase4-visualization",
+  "id": "benjaminbrumm/vw-phase-4-mujoco-visualization",
+  "title": "VW Phase-4 MuJoCo Visualization",
   "code_file": "phase4_mujoco_viz.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
   "enable_gpu": true,
   "is_private": true,
   "kernel_sources": ["benjaminbrumm/vw-phase2-compression"]
