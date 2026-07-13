@@ -135,26 +135,31 @@ def run_episode(
     render_width: int = RENDER_WIDTH,
     render_height: int = RENDER_HEIGHT,
     camera_id: int = 1,
+    predict_every_n: int = 1,
 ) -> dict:
     """
     Run a humanoid episode driven by ``predict_fn`` and return rendered frames.
 
     Parameters
     ----------
-    predict_fn    : callable(image, language) → np.ndarray[7]
-                    Wraps model.predict_action — runs on GPU.
-    get_sample_fn : callable() → {"image": PIL.Image, "language": str}
-                    Returns one evaluation frame from the dataset.
-    n_steps       : number of physics+render cycles (200 steps ≈ 8 s at 25 fps).
-    random_state  : seed for dm_control env initialisation.
-    render_width  : rendered frame width in pixels.
-    render_height : rendered frame height in pixels.
-    camera_id     : dm_control camera index (1 = side view for humanoid).
+    predict_fn      : callable(image, language) → np.ndarray[7]
+                      Wraps model.predict_action — runs on GPU.
+    get_sample_fn   : callable() → {"image": PIL.Image, "language": str}
+                      Returns one evaluation sample (reused each call).
+    n_steps         : total number of physics control steps.
+                      At 25 fps, n_steps=200 produces 200 rendered frames (8 s).
+    random_state    : seed for dm_control env initialisation.
+    render_width    : rendered frame width in pixels.
+    render_height   : rendered frame height in pixels.
+    camera_id       : dm_control camera index (1 = side view for humanoid).
+    predict_every_n : call predict_fn only every N steps; hold action between
+                      calls (default 1 = call every step).  Set to a larger
+                      value (e.g. 5) to reduce GPU load on slow hardware.
 
     Returns
     -------
     dict with keys:
-        frames         — list of H×W×3 uint8 arrays (one per rendered frame)
+        frames         — list of H×W×3 uint8 arrays (one per control step)
         actions        — list of 7-element lists
         arm_trajectory — list of 3-element lists (shoulder1, shoulder2, elbow)
         language       — instruction string used for this episode
@@ -175,18 +180,23 @@ def run_episode(
     image    = sample["image"]
     language = sample["language"]
 
+    # Prime the action with the first prediction
+    action = np.asarray(predict_fn(image, language), dtype=np.float32)
+
     for step in range(n_steps):
-        action = np.asarray(predict_fn(image, language), dtype=np.float32)
+        # Refresh action every predict_every_n steps to spread GPU load
+        if step > 0 and step % predict_every_n == 0:
+            action = np.asarray(predict_fn(image, language), dtype=np.float32)
 
         ctrl       = action_to_joint_command(action, arm_state)
         ctrl[:15]  = pd_lower_body(physics, standing_target)
         env.step(ctrl)
 
-        if step % STEPS_PER_FRAME == 0:
-            frame = physics.render(
-                height=render_height, width=render_width, camera_id=camera_id,
-            )
-            frames.append(frame)
+        # Render every control step (env.step() already advances one control period)
+        frame = physics.render(
+            height=render_height, width=render_width, camera_id=camera_id,
+        )
+        frames.append(frame)
 
         actions.append(action.tolist())
         arm_traj.append(arm_state.copy().tolist())
@@ -315,13 +325,16 @@ def load_compressed_model(
     model_id: str = "openvla/openvla-7b",
 ):
     """
-    Load OpenVLA-7B in INT8 and patch target layers with χ-compressed weights.
+    Load OpenVLA-7B in FP16 and patch target layers with χ-compressed weights.
+
+    Uses FP16 (not INT8) for compatibility with P100/sm_60 GPUs where
+    bitsandbytes INT8 is unavailable.  Reconstruction happens on CPU to
+    avoid exhausting the ~2 GB GPU headroom after model load.
 
     Parameters
     ----------
     chi              : bond dimension of the checkpoint to load
     checkpoints_base : directory containing compressed_chi{chi}/cores.pt
-                       (Google Drive path set in Phase 2/3 notebooks)
     model_id         : HuggingFace model ID
 
     Returns
@@ -331,35 +344,32 @@ def load_compressed_model(
     """
     import torch
     import torch.nn as nn
-    from transformers import AutoModelForVision2Seq, AutoProcessor, BitsAndBytesConfig
+    from transformers import AutoModelForVision2Seq, AutoProcessor
     from vlam_compress.compress import mps_reconstruct
 
     cores_path = Path(checkpoints_base) / f"compressed_chi{chi}" / "cores.pt"
     if not cores_path.exists():
         raise FileNotFoundError(
             f"Checkpoint not found: {cores_path}\n"
-            "Run Phase 2 in Colab first to generate cores."
+            "Run Phase 2 first to generate cores."
         )
 
-    print(f"Loading processor ...")
+    print("Loading processor ...")
     processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
 
-    print("Loading model in INT8 ...")
-    bnb_config = BitsAndBytesConfig(
-        load_in_8bit=True,
-        llm_int8_enable_fp32_cpu_offload=True,
-    )
+    print("Loading model in FP16 ...")
     model = AutoModelForVision2Seq.from_pretrained(
         model_id,
         attn_implementation="eager",
-        quantization_config=bnb_config,
+        torch_dtype=torch.float16,
         device_map="auto",
+        low_cpu_mem_usage=True,
         trust_remote_code=True,
     )
     model.eval()
 
     print(f"Loading chi={chi} cores from {cores_path} ...")
-    cores_dict  = torch.load(cores_path, map_location="cpu")
+    cores_dict  = torch.load(cores_path, map_location="cpu", weights_only=False)
     all_modules = dict(model.named_modules())
     saved: dict = {}
 
@@ -374,10 +384,11 @@ def load_compressed_model(
                 continue
 
             device = orig_mod.weight.device
-            W_hat  = mps_reconstruct(
-                [c.to(device, dtype=torch.float32) for c in layer_cores],
+            # Reconstruct on CPU (cores already there); only W_hat moves to GPU
+            W_hat = mps_reconstruct(
+                [c.to(dtype=torch.float32) for c in layer_cores],
                 tuple(orig_mod.weight.shape),
-            ).to(torch.float16)
+            ).to(dtype=torch.float16, device=device)
 
             has_bias = getattr(orig_mod, "bias", None) is not None
             new_mod  = nn.Linear(
@@ -387,10 +398,12 @@ def load_compressed_model(
             new_mod.weight = nn.Parameter(W_hat)
             if has_bias:
                 new_mod.bias = nn.Parameter(orig_mod.bias.data.to(torch.float16))
+            del W_hat
 
             saved[layer_name] = (parent, child_name, orig_mod)
             setattr(parent, child_name, new_mod)
 
+    torch.cuda.empty_cache()
     print(f"Patched {len(saved)} layers with chi={chi} weights.")
     return model, processor, saved
 
