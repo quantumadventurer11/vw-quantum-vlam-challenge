@@ -10,6 +10,5 @@ n_params_total: 7541237184
 peak_mem_load_mib: 13791.7
 platform: Linux-6.12.90+-x86_64-with-glibc2.35
 sm_version: sm_60
-torch_version: !!python/object/new:torch.torch_version.TorchVersion
-- 2.2.2+cu118
+torch_version: 2.2.2+cu118
 transformers_version: 4.40.1
