@@ -23,8 +23,8 @@ log() { echo "[$(date '+%H:%M:%S')] $*"; }
 
 get_status() {
     local raw
-    raw=$(PYTHONUTF8=1 kaggle kernels status "$KERNEL_ID" 2>/dev/null)
-    echo "$raw" | grep -oP 'KernelWorkerStatus\.\K[A-Z_]+' | tr '[:upper:]' '[:lower:]'
+    raw=$(PYTHONUTF8=1 kaggle kernels status "$KERNEL_ID" 2>/dev/null) || true
+    echo "$raw" | grep -oP 'KernelWorkerStatus\.\K[A-Z_]+' | tr '[:upper:]' '[:lower:]' || true
 }
 
 extract_errors() {

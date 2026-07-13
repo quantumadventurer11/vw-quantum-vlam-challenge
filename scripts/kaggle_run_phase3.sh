@@ -23,8 +23,8 @@ log() { echo "[$(date '+%H:%M:%S')] $*"; }
 
 get_status() {
     local raw
-    raw=$(PYTHONUTF8=1 kaggle kernels status "$KERNEL_ID" 2>/dev/null)
-    echo "$raw" | grep -oP 'KernelWorkerStatus\.\K[A-Z_]+' | tr '[:upper:]' '[:lower:]'
+    raw=$(PYTHONUTF8=1 kaggle kernels status "$KERNEL_ID" 2>/dev/null) || true
+    echo "$raw" | grep -oP 'KernelWorkerStatus\.\K[A-Z_]+' | tr '[:upper:]' '[:lower:]' || true
 }
 
 extract_errors() {
@@ -69,7 +69,10 @@ cp notebooks/phase3_evaluation.ipynb "$STAGE_DIR/"
 cat > "$STAGE_DIR/kernel-metadata.json" <<'METADATA'
 {
   "id": "benjaminbrumm/vw-phase3-evaluation",
+  "title": "VW Phase3 Evaluation",
   "code_file": "phase3_evaluation.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
   "enable_gpu": true,
   "is_private": true,
   "kernel_sources": ["benjaminbrumm/vw-phase2-compression"]
