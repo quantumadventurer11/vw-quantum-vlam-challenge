@@ -355,8 +355,6 @@ def load_compressed_model(
         )
 
     print("Loading processor ...")
-    # torch 2.2.2+cu118 disables numpy bridge with NumPy 2.x; patch the cached
-    # processing_prismatic.py to replace .numpy().tolist() with .tolist().
     import glob as _g, os as _o, sys as _s
 
     def _patch_prismatic():
@@ -376,6 +374,34 @@ def load_compressed_model(
                 patched += 1
         return patched > 0
 
+    def _patch_modeling():
+        # torch 2.2.2+cu118 with NumPy 2.x disables Tensor.numpy(); predict_action
+        # calls action_tokens.cpu().numpy() — shim redirects to a tolist() path.
+        pat = _o.path.expanduser(
+            "~/.cache/huggingface/modules/transformers_modules/openvla/openvla-7b"
+            "/*/modeling_prismatic.py"
+        )
+        _SHIM = (
+            "# NumPy 2.x compat: torch 2.2.2 disables numpy bridge; shim re-enables it\n"
+            "import numpy as _np_shim; import torch as _torch_shim\n"
+            "if not hasattr(_torch_shim.Tensor, '_orig_numpy'):\n"
+            "    _torch_shim.Tensor.numpy = "
+            "lambda self, force=False: _np_shim.array(self.detach().cpu().tolist())\n"
+            "\n"
+        )
+        patched = 0
+        for fp in _g.glob(pat):
+            with open(fp, encoding="utf-8") as _f:
+                src = _f.read()
+            if "_np_shim" in src:
+                patched += 1
+                continue
+            with open(fp, "w", encoding="utf-8") as _f:
+                _f.write(_SHIM + src)
+            print(f"  [modeling-patch] Patched: {fp}")
+            patched += 1
+        return patched > 0
+
     def _clear_prismatic():
         for k in list(_s.modules.keys()):
             if "prismatic" in k.lower() or (
@@ -393,6 +419,9 @@ def load_compressed_model(
         _clear_prismatic()
         processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
 
+    # Patch modeling_prismatic.py BEFORE model load (import sees patched file).
+    _patch_modeling()
+    _clear_prismatic()
     print("Loading model in FP16 ...")
     model = AutoModelForVision2Seq.from_pretrained(
         model_id,
