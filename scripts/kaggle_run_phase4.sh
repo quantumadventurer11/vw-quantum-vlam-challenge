@@ -75,13 +75,13 @@ cat > "$STAGE_DIR/kernel-metadata.json" <<'METADATA'
   "kernel_type": "notebook",
   "enable_gpu": true,
   "is_private": true,
-  "kernel_sources": ["benjaminbrumm/vw-phase2-compression"]
+  "dataset_sources": ["benjaminbrumm/vlam-phase2-checkpoints"]
 }
 METADATA
 
 # ── Push ──────────────────────────────────────────────────────────────────────
 log "Pushing Phase 4 kernel to Kaggle (kernel: $KERNEL_ID)..."
-log "  Phase 2 cores.pt mounted from: benjaminbrumm/vw-phase2-compression"
+log "  Phase 2 cores.pt mounted from dataset: benjaminbrumm/vlam-phase2-checkpoints"
 PYTHONUTF8=1 kaggle kernels push -p "$STAGE_DIR"
 log "Pushed. Waiting 90s for Kaggle to register the new run..."
 sleep 90
