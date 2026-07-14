@@ -20,10 +20,12 @@ eval:
   dataset_subset: bridge   # Open X-Embodiment subset used for evaluation
   max_steps_per_episode: 50
 
-# Hardware declaration (fill in before Phase 3 runs; required for §6 Resource Declaration)
+# Hardware declaration (required for §6 Resource Declaration)
 hardware:
-  gpu_model: "FILL_IN"     # e.g. "NVIDIA RTX 4090"
+  gpu_model: "Tesla P100-PCIE-16GB"
   gpu_count: 1
-  gpu_vram_gb: 24
-  cuda_version: "FILL_IN"  # e.g. "12.4"
-  driver_version: "FILL_IN"
+  gpu_vram_gb: 15.89
+  cuda_version: "11.8"
+  driver_version: "580.159.04"
+  sm_version: "sm_60"
+  platform: "Kaggle cloud notebook (Linux)"

@@ -47,11 +47,8 @@ cd vw-quantum-vlam-challenge
 pip install -e .[dev]
 ```
 
-For exact reproducibility (pinned versions from our test environment):
-
-```bash
-pip install -r requirements-pinned.txt   # generated after pip freeze — see Phase 7
-```
+For exact reproducibility, use the Kaggle P100 kernel environment defined in the notebooks;
+local installs should pin `quimb>=0.8`, `torch==2.2.2+cu118`, `transformers==4.40.1`.
 
 ---
 
@@ -79,7 +76,8 @@ python scripts/visualize.py --chi 64
 
 ## Hardware & Seeds
 
-Hardware used: see `configs/seeds.yaml` (fill in GPU details before Phase 3 runs).
+Hardware used: **NVIDIA Tesla P100-PCIE-16GB** (16 GB VRAM, sm_60), CUDA 11.8, driver 580.159.04.
+Full spec in `configs/seeds.yaml` and `configs/hardware_profile.yaml`.
 
 Random seeds for 3 independent runs: **42, 1337, 2024** (documented in `configs/seeds.yaml`).
 
