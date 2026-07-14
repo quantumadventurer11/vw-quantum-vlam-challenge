@@ -60,7 +60,7 @@ def main(dry_run=False):
     CHI_ORDER = [128, 64, 32, 16]
 
     # ── Table 1: efficiency table rows ────────────────────────────────────────
-    # Replace each chi row's \placeholder{TBD} values
+    # Replace each chi row's \placeholder{TBD} values using regex (handles spacing)
     for chi in CHI_ORDER:
         v = tn.get(str(chi))
         if v is None:
@@ -80,23 +80,19 @@ def main(dry_run=False):
         mem_cell  = f"${m_m:.0f}$"
         dl1_cell  = f"${dl1:+.4f}$"
 
-        # Target the specific row by chi value
-        old_row = (f"{chi}   & \\placeholder{{TBD}} & \\placeholder{{TBD}}"
-                   f" & \\placeholder{{TBD}} & \\placeholder{{TBD}} \\\\")
+        # Use regex to match the row regardless of whitespace alignment
+        ph = r"\\placeholder\{TBD\}"
+        pat = re.compile(
+            rf"^{chi}\s+&\s+{ph}\s+&\s+{ph}\s+&\s+{ph}\s+&\s+{ph}\s*\\\\$",
+            re.MULTILINE
+        )
         new_row = f"{chi}   & {time_cell} & {dt_cell} & {mem_cell} & {dl1_cell} \\\\"
-
-        if old_row in tex:
-            tex = tex.replace(old_row, new_row)
+        new_tex, n = pat.subn(new_row, tex)
+        if n:
+            tex = new_tex
             print(f"  Table 1 row chi={chi}: filled")
         else:
-            # Try without extra spaces
-            old_row2 = (f"{chi}   & \\placeholder{{TBD}} & \\placeholder{{TBD}} "
-                        f"& \\placeholder{{TBD}} & \\placeholder{{TBD}} \\\\")
-            if old_row2 in tex:
-                tex = tex.replace(old_row2, new_row)
-                print(f"  Table 1 row chi={chi}: filled (variant)")
-            else:
-                print(f"  WARNING: Table 1 row chi={chi} pattern not matched")
+            print(f"  WARNING: Table 1 row chi={chi} pattern not matched")
 
     # ── Fill table caption (PENDING Fill from Phase 3 eval_summary.json) ─────
     tex = tex.replace(
@@ -252,17 +248,19 @@ def main(dry_run=False):
         print("  MuJoCo figure: arm_trajectory_chi64.png not found — leaving placeholder")
 
     # ── Phase 3 GPU-hours ─────────────────────────────────────────────────────
+    # wall_time_s is not aggregated; derive from energy: wall_s = kwh * 3.6e6 / avg_pwr_w
+    n_seeds = len(eval_summary.get("seeds", [1, 2, 3]))
+    n_ep    = eval_summary.get("n_eval_episodes_per_run", 200)
     total_wall_s = 0.0
-    for chi_str, v in tn.items():
-        for seed_r in v.get("per_seed", []):
-            if isinstance(seed_r, dict):
-                total_wall_s += seed_r.get("wall_time_s", 0.0)
-    if total_wall_s == 0.0:
-        # Try aggregate
-        for v in tn.values():
-            agg_wall = v.get("aggregate", {}).get("wall_time_s", {})
-            if isinstance(agg_wall, dict):
-                total_wall_s += agg_wall.get("mean", 0.0) * 3  # 3 seeds
+    for v in tn.values():
+        agg = v.get("aggregate", {})
+        kwh_m = agg.get("total_kwh", {}).get("mean", 0.0)
+        pwr_m = agg.get("avg_power_w", {}).get("mean", 0.0)
+        if pwr_m > 0 and kwh_m > 0:
+            total_wall_s += kwh_m * 3.6e6 / pwr_m * n_seeds
+        else:
+            t_ms = agg.get("inference_time_ms_mean", {}).get("mean", 0.0)
+            total_wall_s += t_ms * n_ep * n_seeds / 1000.0
     gpu_h = total_wall_s / 3600.0
     if gpu_h > 0:
         tex = tex.replace(
