@@ -118,9 +118,9 @@ def main(dry_run=False):
             "\\PENDING{Insert pareto\\_curve.png from Phase 3 once available.}\n",
             "",
         )
-        # Remove the fbox block
+        # Remove the entire fbox placeholder block (ends with \vspace{6pt}}})
         tex = re.sub(
-            r"\\fbox\{\\parbox\{0\.9\\linewidth\}\{.*?\\PENDING\{Pareto curve.*?\}\n",
+            r"\\fbox\{\\parbox\{0\.9\\linewidth\}\{.*?\}\}\}\n?",
             "",
             tex,
             flags=re.DOTALL,
