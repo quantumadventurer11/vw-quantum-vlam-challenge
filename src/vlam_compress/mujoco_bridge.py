@@ -355,7 +355,43 @@ def load_compressed_model(
         )
 
     print("Loading processor ...")
-    processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
+    # torch 2.2.2+cu118 disables numpy bridge with NumPy 2.x; patch the cached
+    # processing_prismatic.py to replace .numpy().tolist() with .tolist().
+    import glob as _g, os as _o, sys as _s
+
+    def _patch_prismatic():
+        pat = _o.path.expanduser(
+            "~/.cache/huggingface/modules/transformers_modules/openvla/openvla-7b"
+            "/*/processing_prismatic.py"
+        )
+        patched = 0
+        for fp in _g.glob(pat):
+            with open(fp, encoding="utf-8") as _f:
+                src = _f.read()
+            new_src = src.replace(".numpy().tolist()", ".tolist()")
+            if new_src != src:
+                with open(fp, "w", encoding="utf-8") as _f:
+                    _f.write(new_src)
+                print(f"  [prismatic-patch] Patched: {fp}")
+                patched += 1
+        return patched > 0
+
+    def _clear_prismatic():
+        for k in list(_s.modules.keys()):
+            if "prismatic" in k.lower() or (
+                "openvla" in k.lower() and "transformers_modules" in k.lower()
+            ):
+                del _s.modules[k]
+
+    try:
+        processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
+    except RuntimeError as _exc:
+        if "Numpy is not available" not in str(_exc):
+            raise
+        print("  [prismatic-patch] NumPy bridge error — patching processing_prismatic.py")
+        _patch_prismatic()
+        _clear_prismatic()
+        processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
 
     print("Loading model in FP16 ...")
     model = AutoModelForVision2Seq.from_pretrained(
@@ -384,24 +420,17 @@ def load_compressed_model(
                 continue
 
             device = orig_mod.weight.device
-            # Reconstruct on CPU (cores already there); only W_hat moves to GPU
+            # Reconstruct on CPU (cores already there); copy in-place to GPU.
+            # In-place avoids GPU memory spike from holding both original and
+            # reconstructed weights simultaneously.
             W_hat = mps_reconstruct(
                 [c.to(dtype=torch.float32) for c in layer_cores],
                 tuple(orig_mod.weight.shape),
             ).to(dtype=torch.float16, device=device)
 
-            has_bias = getattr(orig_mod, "bias", None) is not None
-            new_mod  = nn.Linear(
-                W_hat.shape[1], W_hat.shape[0],
-                bias=has_bias, device=device, dtype=torch.float16,
-            )
-            new_mod.weight = nn.Parameter(W_hat)
-            if has_bias:
-                new_mod.bias = nn.Parameter(orig_mod.bias.data.to(torch.float16))
+            orig_mod.weight.data.copy_(W_hat)
             del W_hat
-
-            saved[layer_name] = (parent, child_name, orig_mod)
-            setattr(parent, child_name, new_mod)
+            saved[layer_name] = True   # sentinel for len() compatibility
 
     torch.cuda.empty_cache()
     print(f"Patched {len(saved)} layers with chi={chi} weights.")
@@ -409,6 +438,5 @@ def load_compressed_model(
 
 
 def restore_patches(saved: dict) -> None:
-    """Restore original INT8 modules replaced by ``load_compressed_model``."""
-    for _, (parent, child_name, orig_mod) in saved.items():
-        setattr(parent, child_name, orig_mod)
+    """No-op: in-place patching leaves no originals to restore."""
+    pass
