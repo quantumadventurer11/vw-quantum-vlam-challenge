@@ -73,12 +73,11 @@ def main(dry_run=False):
         l1_m = agg.get("l1_error_mean", {}).get("mean", 0.0)
         l1_s = agg.get("l1_error_mean", {}).get("std", 0.0)
         dt_pct = (t_m - b_t) / b_t * 100 if b_t else 0.0
-        dl1    = l1_m - b_l1
-
+        # l1_m is compression shift (vs FP16 baseline predictions), not vs real GT
         time_cell = f"${t_m:.0f}\\pm{t_s:.0f}$"
         dt_cell   = f"${dt_pct:+.1f}\\%$"
         mem_cell  = f"${m_m:.0f}$"
-        dl1_cell  = f"${dl1:+.4f}$"
+        dl1_cell  = f"${l1_m:.4f}\\pm{l1_s:.4f}$"
 
         # Use regex to match the row regardless of whitespace alignment
         ph = r"\\placeholder\{TBD\}"
@@ -209,34 +208,32 @@ def main(dry_run=False):
         stat = agg.get("l1_error_mean", agg.get("l1_error", {}))
         return stat.get("mean"), stat.get("std")
 
-    # Condition B: TN LLM only
+    # Condition B: TN LLM only — L1 is compression shift vs FP16 (not vs real GT)
     bl1_m, bl1_s = _cond_l1("B_tn_llm_only")
     if bl1_m is not None:
-        delta_b = bl1_m - b_l1
         tex = tex.replace(
-            "TN LLM only ($\\chi=64$) & \\placeholder{TBD} & $\\sim$1.20\\,B & \\placeholder{TBD} \\\\",
-            (f"TN LLM only ($\\chi=64$) & ${bl1_m:.3f}\\pm{bl1_s:.3f}$ "
-             f"& $\\sim$1.20\\,B & ${delta_b:+.4f}$ \\\\"),
+            "TN LLM only ($\\chi=64$) & \\placeholder{TBD} & $\\sim$1.20\\,B & --- \\\\",
+            (f"TN LLM only ($\\chi=64$) & ${bl1_m:.4f}\\pm{bl1_s:.4f}$ "
+             f"& $\\sim$1.20\\,B & --- \\\\"),
         )
-        print(f"  Ablation row B: L1={bl1_m:.4f}, ΔL1={delta_b:+.4f}")
+        print(f"  Ablation row B: L1 shift={bl1_m:.4f} ± {bl1_s:.4f}")
 
-    # Condition C: TN full
+    # Condition C: TN full — delta shift is vs condition B
     cl1_m, cl1_s = _cond_l1("C_tn_full")
     cond_c = conds.get("C_tn_full")
     n_params_c_str = "\\placeholder{TBD}"
     if cond_c is not None:
-        # Try to get param count from eval_summary
         n_full = tn.get("64", {}).get("n_params_core")
         if n_full:
             n_params_c_str = f"$\\sim${n_full/1e9:.2f}\\,B"
-    if cl1_m is not None:
-        delta_c = cl1_m - b_l1
+    if cl1_m is not None and bl1_m is not None:
+        delta_c_vs_b = cl1_m - bl1_m
         tex = tex.replace(
             "TN full ($\\chi=64$)     & \\placeholder{TBD} & \\placeholder{TBD} & \\placeholder{TBD} \\\\",
-            (f"TN full ($\\chi=64$) & ${cl1_m:.3f}\\pm{cl1_s:.3f}$ "
-             f"& {n_params_c_str} & ${delta_c:+.4f}$ \\\\"),
+            (f"TN full ($\\chi=64$) & ${cl1_m:.4f}\\pm{cl1_s:.4f}$ "
+             f"& {n_params_c_str} & ${delta_c_vs_b:+.4f}$ \\\\"),
         )
-        print(f"  Ablation row C: L1={cl1_m:.4f}, ΔL1={delta_c:+.4f}")
+        print(f"  Ablation row C: L1 shift={cl1_m:.4f}, Δ vs B={delta_c_vs_b:+.4f}")
 
     # ── Phase 4 MuJoCo figure ─────────────────────────────────────────────────
     traj_exists = (RESULTS / "arm_trajectory_chi64.png").exists()

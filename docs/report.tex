@@ -271,7 +271,7 @@ in Section~\ref{sec:accuracy}.
 \label{tab:efficiency}
 \begin{tabular}{rcccc}
 \toprule
-$\chi$ & Time (ms) & $\Delta t$ (\%) & Mem (MiB) & $\Delta$L1 \\
+$\chi$ & Time (ms) & $\Delta t$ (\%) & Mem (MiB) & L1 shift\dag \\
 \midrule
 FP16  & $2095.6\pm1.2$ & --- & $14345.6$ & --- \\
 128   & \placeholder{TBD} & \placeholder{TBD} & \placeholder{TBD} & \placeholder{TBD} \\
@@ -280,6 +280,10 @@ FP16  & $2095.6\pm1.2$ & --- & $14345.6$ & --- \\
 16    & \placeholder{TBD} & \placeholder{TBD} & \placeholder{TBD} & \placeholder{TBD} \\
 \bottomrule
 \end{tabular}
+\par\smallskip
+{\footnotesize \dag~L1 distance of compressed-model predictions from uncompressed
+FP16 predictions (measures compression-induced shift, not absolute action quality).
+FP16 baseline L1 vs.\ real ground-truth: $0.2849 \pm 0.003$.}
 \end{table}
 
 \subsection{Compression vs.\ Accuracy (Pareto Curve)}
@@ -348,13 +352,17 @@ We compare three conditions (3 seeds each):
 \label{tab:ablation}
 \begin{tabular}{lccc}
 \toprule
-Condition & L1 error & Params & $\Delta$L1 vs.\ baseline \\
+Condition & L1 shift\dag & Params & $\Delta$ shift vs.\ B \\
 \midrule
-FP16 baseline & $0.285 \pm 0.003$ & 7.54\,B & --- \\
-TN LLM only ($\chi=64$) & \placeholder{TBD} & $\sim$1.20\,B & \placeholder{TBD} \\
+FP16 baseline (ref.) & 0 (by def.) & 7.54\,B & --- \\
+TN LLM only ($\chi=64$) & \placeholder{TBD} & $\sim$1.20\,B & --- \\
 TN full ($\chi=64$)     & \placeholder{TBD} & \placeholder{TBD} & \placeholder{TBD} \\
 \bottomrule
 \end{tabular}
+\par\smallskip
+{\footnotesize \dag~L1 distance of each condition's predictions from uncompressed
+FP16 predictions (0 by definition for the FP16 reference).
+FP16 absolute accuracy vs.\ real GT: $0.285 \pm 0.003$ (Phase~1).}
 \end{table}
 
 The ablation isolates the contribution of the TN step: comparing conditions (1) and
