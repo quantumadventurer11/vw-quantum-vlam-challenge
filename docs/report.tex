@@ -190,13 +190,14 @@ We use \texttt{lerobot/toto} as a proxy for the Open X-Embodiment
 \texttt{bridge\_dataset} split \cite{open_x_embodiment_2023}. \texttt{lerobot/toto}
 provides real 7-DoF action sequences with task-language annotations, making it
 structurally compatible with OpenVLA's action head. The dataset is fully public
-(no authentication required for the parquet rows we use). We evaluate on 200 held-out
-episodes per run, matching the plan in \S5.5. The \texttt{bridge\_dataset} split
-requires HuggingFace authentication and is reserved for future work.
+(no authentication required for the parquet rows we use). We evaluate on 50 held-out
+episodes per run (budget override for the 9\,h Kaggle wall-clock limit; original
+plan was 200 episodes). The \texttt{bridge\_dataset} split requires HuggingFace
+authentication and is reserved for future work.
 
-\textbf{Evaluation metric.} Mean L1 action-prediction error across all 200 episodes,
-reported as mean $\pm$ std across 3 independent seeds (42, 1337, 2024), matching the
-\S5.2 requirement of ``at least 3 runs.''
+\textbf{Evaluation metric.} Mean L1 action-prediction error across all 50 episodes
+per seed, reported as mean $\pm$ std across 3 independent seeds (42, 1337, 2024),
+matching the \S5.2 requirement of ``at least 3 runs.''
 
 \subsection{Hardware and Resource Declaration}
 \label{sec:hardware}
@@ -247,7 +248,7 @@ in Section~\ref{sec:accuracy}.
 \subsection{Efficiency Gain}
 \label{sec:efficiency}
 
-\textbf{FP16 baseline} (3 seeds $\times$ 200 episodes):
+\textbf{FP16 baseline} (Phase~1; 3 seeds $\times$ 200 episodes):
 \begin{itemize}
   \item Inference time: $2095.6 \pm 1.2$\,ms/sample
   \item Peak GPU memory: $14345.6 \pm 0.0$\,MiB
@@ -313,9 +314,9 @@ operation is memory-bandwidth-bound.
 
 \subsection{Energy Efficiency}
 
-FP16 baseline: $0.006 \pm 0.0002$\,kWh per 200-sample batch on the P100.
-Compressed model (\PENDING{$\chi=64$}): \PENDING{TBD kWh}
-(\PENDING{TBD\%} reduction). The model compression reduces FLOPs but the dominant
+FP16 baseline: $3.01 \times 10^{-5}$\,kWh per sample ($0.006$\,kWh/200-sample batch) on the P100.
+Compressed model (\PENDING{$\chi=64$}): \PENDING{TBD kWh/sample}
+(\PENDING{TBD\%} per-sample reduction). The model compression reduces FLOPs but the dominant
 energy cost is data movement; energy savings track parameter count reduction
 approximately linearly.
 

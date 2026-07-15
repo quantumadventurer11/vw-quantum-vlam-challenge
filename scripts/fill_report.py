@@ -95,9 +95,10 @@ def main(dry_run=False):
             print(f"  WARNING: Table 1 row chi={chi} pattern not matched")
 
     # ── Fill table caption (PENDING Fill from Phase 3 eval_summary.json) ─────
+    n_ep_actual = eval_summary.get("n_eval_episodes_per_run", 200)
     tex = tex.replace(
         "\\PENDING{Fill from Phase 3 eval\\_summary.json.}",
-        "Mean $\\pm$ std across 3 seeds, 200 episodes each.",
+        f"Mean $\\pm$ std across 3 seeds, {n_ep_actual} episodes each.",
     )
 
     # ── Remove section header PENDING ─────────────────────────────────────────
@@ -167,18 +168,23 @@ def main(dry_run=False):
         )
         print(f"  Compression ratio: {cr_str}")
 
-    # ── Energy section ────────────────────────────────────────────────────────
-    b_kwh = baseline_agg.get("total_kwh", {}).get("mean", 0.006)
+    # ── Energy section (per-sample, to normalize across different episode counts) ──
+    b_n_ep = eval_summary.get("baseline", {}).get("aggregate", {}).get(
+        "wall_time_s", {}).get("n_runs", None)  # not useful; use hardcoded baseline
+    b_kwh_total = baseline_agg.get("total_kwh", {}).get("mean", 0.006)
+    b_n_episodes = 200  # Phase 1 always used 200 episodes
+    b_kwh_per_ep = b_kwh_total / b_n_episodes
     if tn.get("64"):
-        kwh64  = tn["64"]["aggregate"].get("total_kwh", {}).get("mean")
+        kwh64 = tn["64"]["aggregate"].get("total_kwh", {}).get("mean")
         if kwh64 is not None:
-            kwh_pct = (b_kwh - kwh64) / b_kwh * 100 if b_kwh else 0.0
+            kwh64_per_ep = kwh64 / n_ep_actual
+            kwh_pct = (b_kwh_per_ep - kwh64_per_ep) / b_kwh_per_ep * 100 if b_kwh_per_ep else 0.0
             tex = tex.replace(
-                "Compressed model (\\PENDING{$\\chi=64$}): \\PENDING{TBD kWh}\n(\\PENDING{TBD\\%} reduction).",
-                (f"Compressed model ($\\chi=64$): ${kwh64:.4f}$\\,kWh\n"
-                 f"(${kwh_pct:.0f}\\%$ reduction)."),
+                "Compressed model (\\PENDING{$\\chi=64$}): \\PENDING{TBD kWh/sample}\n(\\PENDING{TBD\\%} per-sample reduction).",
+                (f"Compressed model ($\\chi=64$): ${kwh64_per_ep:.2e}$\\,kWh/sample\n"
+                 f"(${kwh_pct:.0f}\\%$ per-sample reduction)."),
             )
-            print(f"  Energy: {kwh64:.4f} kWh, {kwh_pct:.0f}% reduction")
+            print(f"  Energy: {kwh64_per_ep:.2e} kWh/ep, {kwh_pct:.0f}% reduction vs baseline {b_kwh_per_ep:.2e} kWh/ep")
         else:
             print("  Energy: total_kwh missing in chi=64 aggregate")
 
@@ -189,7 +195,7 @@ def main(dry_run=False):
     )
     tex = tex.replace(
         "  \\PENDING{Fill from ablation.json.}}",
-        "  Mean $\\pm$ std, 3 seeds, 200 episodes.}",
+        f"  Mean $\\pm$ std, 3 seeds, {n_ep_actual} episodes.}}",
     )
 
     # ── Ablation Table 2 rows ─────────────────────────────────────────────────
