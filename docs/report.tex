@@ -41,7 +41,7 @@
 %% ─────────────────────────────────────────────────────────────────────────────
 \begin{abstract}
 We present a quantum-inspired tensor-network (TN) compression pipeline for
-OpenVLA-7B \cite{black2024pi0}, a 7.54\,B-parameter vision-language-action model
+OpenVLA-7B \cite{kim2024openvla}, a 7.54\,B-parameter vision-language-action model
 for robot manipulation. Following the CompactifAI methodology \cite{tomut2024compactifai},
 we decompose the 6.48\,B-parameter LLM backbone's linear-layer weight matrices into
 Matrix Product State (MPS) representations using GPU-accelerated SVD
@@ -63,7 +63,9 @@ control from language and camera observations, but their 7--13\,B parameter coun
 makes on-device deployment impractical. The standard mitigation---INT8 quantisation
 via \texttt{bitsandbytes}---achieves 2--4$\times$ compression with modest accuracy
 loss, but hits a practical ceiling: further bit-width reduction degrades performance
-sharply and is unsupported on several GPU generations (e.g.\ P100/sm\_60).
+sharply and is unsupported on several GPU generations (e.g.\ P100/sm\_60); recent
+NVIDIA FP4 work \cite{nvfp4} pushes this ceiling further on Blackwell GPUs but
+remains hardware-generation locked.
 
 Tensor-network (TN) methods from quantum many-body physics offer a complementary
 path. Matrix Product States (MPS) and Matrix Product Operators (MPO) represent
@@ -74,6 +76,8 @@ compression at any target ratio. The CompactifAI work \cite{tomut2024compactifai
 showed this is viable for large language models; we extend it to the multimodal
 action-prediction setting of OpenVLA-7B.
 
+Concurrent VLA architectures such as $\pi_0$ \cite{black2024pi0} push toward
+generalised robot control via flow-matching policies at similar scale.
 Related work on structured classical compression includes SQAP-VLA and similar
 pruning-plus-quantisation pipelines, which offer strong baselines but share the
 quantisation ceiling. Our approach trades heavier offline compute (SVD sweep) for a
@@ -165,7 +169,7 @@ constitutes the quantum-inspired advantage claimed in~\S5.5.
 
 \subsection{Model}
 
-We use OpenVLA-7B \cite{black2024pi0} (\texttt{openvla/openvla-7b}), a
+We use OpenVLA-7B \cite{kim2024openvla} (\texttt{openvla/openvla-7b}), a
 Prismatic-VLM architecture combining a SigLIP vision encoder with a
 Vicuna-v1.5/LLaMA-2 language backbone (7.54\,B parameters total; 6.48\,B in the
 LLM backbone layers we target).
@@ -425,12 +429,6 @@ J.~Liu, M.-H.~Hsieh, and D.~Tao.
   Machine-Learning Models.
 \newblock \emph{Nature Communications}, 15(1):434, 2024.
 
-\bibitem{alpamayo2025}
-Y.~Wang et al.
-\newblock Alpamayo-R1: Bridging Reasoning and Action Prediction for
-  Generalizable Autonomous Driving in the Long Tail.
-\newblock \emph{arXiv:2511.00088}, 2025.
-
 \bibitem{nvfp4}
 {NVIDIA}.
 \newblock Introducing NVFP4 for Efficient and Accurate Low-Precision Inference.
@@ -441,10 +439,12 @@ Y.~Wang et al.
 \newblock Open X-Embodiment: Robotic Learning Datasets and RT-X Models.
 \newblock \emph{arXiv:2310.08864}, 2023.
 
-\bibitem{caesar2020nuscenes}
-H.~Caesar et al.
-\newblock {nuScenes}: A Multimodal Dataset for Autonomous Driving.
-\newblock In \emph{CVPR}, pp.~11618--11628, 2020.
+\bibitem{kim2024openvla}
+M.~Kim, K.~Pertsch, S.~Karamcheti, T.~Xiao, A.~Balakrishna, S.~Nair,
+  R.~Rafailov, E.~Foster, G.~Lam, P.~Sanketi, Q.~Vuong, T.~Kollar,
+  E.~Biyik, D.~Sadigh, S.~Levine, P.~Liang, and C.~Finn.
+\newblock {OpenVLA}: An Open-Source Vision-Language-Action Model.
+\newblock \emph{arXiv:2406.09246}, 2024.
 
 \bibitem{black2024pi0}
 K.~Black, N.~Brown, D.~Driess, A.~Esmail, M.~Equi, C.~Florence, N.~Groom,
