@@ -39,72 +39,70 @@ def main(dry_run=False):
     ablation     = load_json("ablation.json")
     sweep_stats  = load_json("compression_sweep_stats.json")
 
-    if eval_summary is None:
-        print("ERROR: eval_summary.json is required. Run Phase 3 first.")
-        sys.exit(1)
-    if ablation is None:
-        print("ERROR: ablation.json is required. Run Phase 3 first.")
-        sys.exit(1)
+    phase3_ready = eval_summary is not None and ablation is not None
+    if not phase3_ready:
+        print("  NOTE: Phase 3 artifacts missing — skipping Phase 3 fills, continuing with available data.")
 
     with open(TEX, encoding="utf-8") as f:
         tex = f.read()
 
     original = tex  # for diff
 
-    # ── baseline values ───────────────────────────────────────────────────────
-    baseline_agg = eval_summary.get("baseline", {}).get("aggregate", {})
+    # ── baseline values (fallback to Phase 1 known values if Phase 3 missing) ──
+    baseline_agg = (eval_summary or {}).get("baseline", {}).get("aggregate", {})
     b_l1  = baseline_agg.get("l1_error", {}).get("mean", 0.2849)
     b_t   = baseline_agg.get("inference_time_ms", {}).get("mean", 2095.6)
 
-    tn = eval_summary.get("tn_variants", {})
+    tn = (eval_summary or {}).get("tn_variants", {})
     CHI_ORDER = [128, 64, 32, 16]
 
-    # ── Table 1: efficiency table rows ────────────────────────────────────────
-    # Replace each chi row's \placeholder{TBD} values using regex (handles spacing)
-    for chi in CHI_ORDER:
-        v = tn.get(str(chi))
-        if v is None:
-            print(f"  WARNING: chi={chi} not in eval_summary — skipping row")
-            continue
-        agg = v["aggregate"]
-        t_m  = agg.get("inference_time_ms_mean", {}).get("mean", 0.0)
-        t_s  = agg.get("inference_time_ms_mean", {}).get("std", 0.0)
-        m_m  = agg.get("peak_mem_mib_mean", {}).get("mean", 0.0)
-        l1_m = agg.get("l1_error_mean", {}).get("mean", 0.0)
-        l1_s = agg.get("l1_error_mean", {}).get("std", 0.0)
-        dt_pct = (t_m - b_t) / b_t * 100 if b_t else 0.0
-        # l1_m is compression shift (vs FP16 baseline predictions), not vs real GT
-        time_cell = f"${t_m:.0f}\\pm{t_s:.0f}$"
-        dt_cell   = f"${dt_pct:+.1f}\\%$"
-        mem_cell  = f"${m_m:.0f}$"
-        dl1_cell  = f"${l1_m:.4f}\\pm{l1_s:.4f}$"
+    if phase3_ready:
+        # ── Table 1: efficiency table rows ────────────────────────────────────
+        for chi in CHI_ORDER:
+            v = tn.get(str(chi))
+            if v is None:
+                print(f"  WARNING: chi={chi} not in eval_summary — skipping row")
+                continue
+            agg = v["aggregate"]
+            t_m  = agg.get("inference_time_ms_mean", {}).get("mean", 0.0)
+            t_s  = agg.get("inference_time_ms_mean", {}).get("std", 0.0)
+            m_m  = agg.get("peak_mem_mib_mean", {}).get("mean", 0.0)
+            l1_m = agg.get("l1_error_mean", {}).get("mean", 0.0)
+            l1_s = agg.get("l1_error_mean", {}).get("std", 0.0)
+            dt_pct = (t_m - b_t) / b_t * 100 if b_t else 0.0
+            # l1_m is compression shift (vs FP16 baseline predictions), not vs real GT
+            time_cell = f"${t_m:.0f}\\pm{t_s:.0f}$"
+            dt_cell   = f"${dt_pct:+.1f}\\%$"
+            mem_cell  = f"${m_m:.0f}$"
+            dl1_cell  = f"${l1_m:.4f}\\pm{l1_s:.4f}$"
 
-        # Use regex to match the row regardless of whitespace alignment
-        ph = r"\\placeholder\{TBD\}"
-        pat = re.compile(
-            rf"^{chi}\s+&\s+{ph}\s+&\s+{ph}\s+&\s+{ph}\s+&\s+{ph}\s*\\\\$",
-            re.MULTILINE
+            ph = r"\\placeholder\{TBD\}"
+            pat = re.compile(
+                rf"^{chi}\s+&\s+{ph}\s+&\s+{ph}\s+&\s+{ph}\s+&\s+{ph}\s*\\\\$",
+                re.MULTILINE
+            )
+            new_row = f"{chi}   & {time_cell} & {dt_cell} & {mem_cell} & {dl1_cell} \\\\"
+            new_tex, n = pat.subn(new_row, tex)
+            if n:
+                tex = new_tex
+                print(f"  Table 1 row chi={chi}: filled")
+            else:
+                print(f"  WARNING: Table 1 row chi={chi} pattern not matched")
+
+        # ── Fill table caption (PENDING Fill from Phase 3 eval_summary.json) ──
+        n_ep_actual = eval_summary.get("n_eval_episodes_per_run", 200)
+        tex = tex.replace(
+            "\\PENDING{Fill from Phase 3 eval\\_summary.json.}",
+            f"Mean $\\pm$ std across 3 seeds, {n_ep_actual} episodes each.",
         )
-        new_row = f"{chi}   & {time_cell} & {dt_cell} & {mem_cell} & {dl1_cell} \\\\"
-        new_tex, n = pat.subn(new_row, tex)
-        if n:
-            tex = new_tex
-            print(f"  Table 1 row chi={chi}: filled")
-        else:
-            print(f"  WARNING: Table 1 row chi={chi} pattern not matched")
 
-    # ── Fill table caption (PENDING Fill from Phase 3 eval_summary.json) ─────
-    n_ep_actual = eval_summary.get("n_eval_episodes_per_run", 200)
-    tex = tex.replace(
-        "\\PENDING{Fill from Phase 3 eval\\_summary.json.}",
-        f"Mean $\\pm$ std across 3 seeds, {n_ep_actual} episodes each.",
-    )
-
-    # ── Remove section header PENDING ─────────────────────────────────────────
-    tex = tex.replace(
-        "\\textbf{Compressed models} (\\PENDING{Phase 3 results}):",
-        "\\textbf{Compressed models} (Phase 3 evaluation):",
-    )
+        # ── Remove section header PENDING ─────────────────────────────────────
+        tex = tex.replace(
+            "\\textbf{Compressed models} (\\PENDING{Phase 3 results}):",
+            "\\textbf{Compressed models} (Phase 3 evaluation):",
+        )
+    else:
+        n_ep_actual = 200
 
     # ── Pareto curve figure ───────────────────────────────────────────────────
     pareto_exists = (RESULTS / "pareto_curve.png").exists()
@@ -129,35 +127,31 @@ def main(dry_run=False):
     else:
         print("  Pareto figure: pareto_curve.png not found — leaving placeholder")
 
-    # ── Latency does/does not text ────────────────────────────────────────────
-    if tn.get("64"):
+    # ── Latency does/does not text (Phase 3 required) ────────────────────────
+    if phase3_ready and tn.get("64"):
         t64 = tn["64"]["aggregate"].get("inference_time_ms_mean", {}).get("mean", 9999.0)
-        if t64 <= 100.0:
-            latency_verdict = "does"
-        else:
-            latency_verdict = "does not"
+        latency_verdict = "does" if t64 <= 100.0 else "does not"
         tex = tex.replace(
             "TN compression\n\\PENDING{does / does not} reduce latency significantly",
             f"TN compression {latency_verdict} reduce latency significantly",
         )
         print(f"  Latency verdict: '{latency_verdict}' (chi=64 time={t64:.1f} ms)")
 
-    # ── Compression ratio text ────────────────────────────────────────────────
+    # ── Compression ratio text (Phase 2 fallback available) ──────────────────
     cr64 = None
     if tn.get("64"):
         cr64 = tn["64"].get("compression_ratio")
     if cr64 is None and sweep_stats:
-        # Fallback: whole-model ratio from Phase 2 data
-        n_total  = eval_summary.get("baseline", {}).get("n_params", 7541237184)
-        ss64     = sweep_stats.get("sweep_stats", {}).get("64", {})
-        n_non    = n_total - sweep_stats.get("n_target_params_orig", 0)
-        n_core   = ss64.get("total_core_params")
+        n_total = 7541237184
+        ss64    = sweep_stats.get("sweep_stats", {}).get("64", {})
+        n_non   = n_total - sweep_stats.get("n_target_params_orig", 0)
+        n_core  = ss64.get("total_core_params")
         if n_core:
             from vlam_compress.metrics import model_compression_ratio
             try:
                 cr64 = model_compression_ratio(n_total, n_non, n_core)
             except Exception:
-                cr64 = 6.3  # fallback
+                cr64 = 6.3
 
     if cr64 is not None:
         cr_str = f"$\\sim${cr64:.1f}$\\times$ at $\\chi=64$"
@@ -167,38 +161,37 @@ def main(dry_run=False):
         )
         print(f"  Compression ratio: {cr_str}")
 
-    # ── Energy section (per-sample, to normalize across different episode counts) ──
-    b_n_ep = eval_summary.get("baseline", {}).get("aggregate", {}).get(
-        "wall_time_s", {}).get("n_runs", None)  # not useful; use hardcoded baseline
-    b_kwh_total = baseline_agg.get("total_kwh", {}).get("mean", 0.006)
-    b_n_episodes = 200  # Phase 1 always used 200 episodes
-    b_kwh_per_ep = b_kwh_total / b_n_episodes
-    if tn.get("64"):
-        kwh64 = tn["64"]["aggregate"].get("total_kwh", {}).get("mean")
-        if kwh64 is not None:
-            kwh64_per_ep = kwh64 / n_ep_actual
-            kwh_pct = (b_kwh_per_ep - kwh64_per_ep) / b_kwh_per_ep * 100 if b_kwh_per_ep else 0.0
-            tex = tex.replace(
-                "Compressed model (\\PENDING{$\\chi=64$}): \\PENDING{TBD kWh/sample}\n(\\PENDING{TBD\\%} per-sample reduction).",
-                (f"Compressed model ($\\chi=64$): ${kwh64_per_ep:.2e}$\\,kWh/sample\n"
-                 f"(${kwh_pct:.0f}\\%$ per-sample reduction)."),
-            )
-            print(f"  Energy: {kwh64_per_ep:.2e} kWh/ep, {kwh_pct:.0f}% reduction vs baseline {b_kwh_per_ep:.2e} kWh/ep")
-        else:
-            print("  Energy: total_kwh missing in chi=64 aggregate")
+    # ── Energy section (Phase 3 required) ────────────────────────────────────
+    if phase3_ready:
+        b_kwh_total = baseline_agg.get("total_kwh", {}).get("mean", 0.006)
+        b_kwh_per_ep = b_kwh_total / 200
+        if tn.get("64"):
+            kwh64 = tn["64"]["aggregate"].get("total_kwh", {}).get("mean")
+            if kwh64 is not None:
+                kwh64_per_ep = kwh64 / n_ep_actual
+                kwh_pct = (b_kwh_per_ep - kwh64_per_ep) / b_kwh_per_ep * 100 if b_kwh_per_ep else 0.0
+                tex = tex.replace(
+                    "Compressed model (\\PENDING{$\\chi=64$}): \\PENDING{TBD kWh/sample}\n(\\PENDING{TBD\\%} per-sample reduction).",
+                    (f"Compressed model ($\\chi=64$): ${kwh64_per_ep:.2e}$\\,kWh/sample\n"
+                     f"(${kwh_pct:.0f}\\%$ per-sample reduction)."),
+                )
+                print(f"  Energy: {kwh64_per_ep:.2e} kWh/ep, {kwh_pct:.0f}% reduction")
+            else:
+                print("  Energy: total_kwh missing in chi=64 aggregate")
 
-    # ── Ablation section header ───────────────────────────────────────────────
-    tex = tex.replace(
-        "\n\\PENDING{Fill from Phase 3 ablation.json.}\n",
-        "\n",
-    )
-    tex = tex.replace(
-        "  \\PENDING{Fill from ablation.json.}}",
-        f"  Mean $\\pm$ std, 3 seeds, {n_ep_actual} episodes.}}",
-    )
+    # ── Ablation section header (Phase 3 required) ───────────────────────────
+    if phase3_ready:
+        tex = tex.replace(
+            "\n\\PENDING{Fill from Phase 3 ablation.json.}\n",
+            "\n",
+        )
+        tex = tex.replace(
+            "  \\PENDING{Fill from ablation.json.}}",
+            f"  Mean $\\pm$ std, 3 seeds, {n_ep_actual} episodes.}}",
+        )
 
-    # ── Ablation Table 2 rows ─────────────────────────────────────────────────
-    conds = ablation.get("conditions", {})
+    # ── Ablation Table 2 rows (Phase 3 required) ─────────────────────────────
+    conds = (ablation or {}).get("conditions", {})
 
     def _cond_l1(cond_key):
         c = conds.get(cond_key)
@@ -250,27 +243,27 @@ def main(dry_run=False):
     else:
         print("  MuJoCo figure: arm_trajectory_chi64.png not found — leaving placeholder")
 
-    # ── Phase 3 GPU-hours ─────────────────────────────────────────────────────
-    # wall_time_s is not aggregated; derive from energy: wall_s = kwh * 3.6e6 / avg_pwr_w
-    n_seeds = len(eval_summary.get("seeds", [1, 2, 3]))
-    n_ep    = eval_summary.get("n_eval_episodes_per_run", 200)
-    total_wall_s = 0.0
-    for v in tn.values():
-        agg = v.get("aggregate", {})
-        kwh_m = agg.get("total_kwh", {}).get("mean", 0.0)
-        pwr_m = agg.get("avg_power_w", {}).get("mean", 0.0)
-        if pwr_m > 0 and kwh_m > 0:
-            total_wall_s += kwh_m * 3.6e6 / pwr_m * n_seeds
-        else:
-            t_ms = agg.get("inference_time_ms_mean", {}).get("mean", 0.0)
-            total_wall_s += t_ms * n_ep * n_seeds / 1000.0
-    gpu_h = total_wall_s / 3600.0
-    if gpu_h > 0:
-        tex = tex.replace(
-            "Phase 3 GPU-hours & \\PENDING{from eval\\_summary.json} \\\\",
-            f"Phase 3 GPU-hours & $\\sim${gpu_h:.2f}\\,h (4 $\\chi$ $\\times$ 3 seeds) \\\\",
-        )
-        print(f"  Phase 3 GPU-hours: {gpu_h:.2f} h (total wall {total_wall_s:.0f} s)")
+    # ── Phase 3 GPU-hours (Phase 3 required) ─────────────────────────────────
+    if phase3_ready:
+        n_seeds = len(eval_summary.get("seeds", [1, 2, 3]))
+        n_ep    = eval_summary.get("n_eval_episodes_per_run", 200)
+        total_wall_s = 0.0
+        for v in tn.values():
+            agg = v.get("aggregate", {})
+            kwh_m = agg.get("total_kwh", {}).get("mean", 0.0)
+            pwr_m = agg.get("avg_power_w", {}).get("mean", 0.0)
+            if pwr_m > 0 and kwh_m > 0:
+                total_wall_s += kwh_m * 3.6e6 / pwr_m * n_seeds
+            else:
+                t_ms = agg.get("inference_time_ms_mean", {}).get("mean", 0.0)
+                total_wall_s += t_ms * n_ep * n_seeds / 1000.0
+        gpu_h = total_wall_s / 3600.0
+        if gpu_h > 0:
+            tex = tex.replace(
+                "Phase 3 GPU-hours & \\PENDING{from eval\\_summary.json} \\\\",
+                f"Phase 3 GPU-hours & $\\sim${gpu_h:.2f}\\,h (4 $\\chi$ $\\times$ 3 seeds) \\\\",
+            )
+            print(f"  Phase 3 GPU-hours: {gpu_h:.2f} h (total wall {total_wall_s:.0f} s)")
 
     # ── Final check: remaining PENDING / placeholder occurrences ──────────────
     remaining_pending = tex.count("\\PENDING{") + tex.count("\\placeholder{TBD}")

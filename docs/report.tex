@@ -316,7 +316,7 @@ P100 with FP16, the model is not production-latency-competitive. TN compression
 
 We note that latency is dominated by the 7.5\,B-parameter forward pass, not by the
 reconstruction step (which is done once offline at load time). The parameter-count
-reduction (\PENDING{$\sim$6$\times$ at $\chi=64$}) does translate to proportional
+reduction ($\sim$6.3$\times$ at $\chi=64$) does translate to proportional
 FLOPs reduction, though this does not automatically reduce wall-clock time when the
 operation is memory-bandwidth-bound.
 
@@ -394,8 +394,11 @@ The 7 action dimensions map to the right arm: shoulder ($\times$2), elbow, wrist
 velocity. We render 200 physics steps at 25\,Hz ($\approx$8\,s video), with a GPU
 inference call every 10 steps (20 calls total).
 
-\PENDING{Insert side-by-side frame from demo\_side\_by\_side\_chi64.mp4 and arm
-trajectory plot from arm\_trajectory\_chi64.png once Phase 4 Kaggle run completes.}
+\begin{center}
+\includegraphics[width=\linewidth]{../results/arm_trajectory_chi64.png}
+\end{center}
+\captionof{figure}{Right-arm joint trajectories ($\chi=64$ compressed model,
+200 MuJoCo steps at 25\,Hz). Lower body stabilised by PD controller.}
 
 %% ─────────────────────────────────────────────────────────────────────────────
 \section{Conclusion and Limitations}
