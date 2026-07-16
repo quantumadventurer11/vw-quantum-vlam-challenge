@@ -82,7 +82,7 @@ def main(dry_run=False):
                 re.MULTILINE
             )
             new_row = f"{chi}   & {time_cell} & {dt_cell} & {mem_cell} & {dl1_cell} \\\\"
-            new_tex, n = pat.subn(new_row, tex)
+            new_tex, n = pat.subn(lambda m: new_row, tex)
             if n:
                 tex = new_tex
                 print(f"  Table 1 row chi={chi}: filled")
@@ -96,11 +96,8 @@ def main(dry_run=False):
             f"Mean $\\pm$ std across 3 seeds, {n_ep_actual} episodes each.",
         )
 
-        # ── Remove section header PENDING ─────────────────────────────────────
-        tex = tex.replace(
-            "\\textbf{Compressed models} (\\PENDING{Phase 3 results}):",
-            "\\textbf{Compressed models} (Phase 3 evaluation):",
-        )
+        # ── Remove section header PENDING (already filled manually; no-op) ──────
+        pass
     else:
         n_ep_actual = 200
 
@@ -226,7 +223,7 @@ def main(dry_run=False):
             (f"TN full ($\\chi=64$) & ${cl1_m:.4f}\\pm{cl1_s:.4f}$ "
              f"& {n_params_c_str} & ${delta_c_vs_b:+.4f}$ \\\\"),
         )
-        print(f"  Ablation row C: L1 shift={cl1_m:.4f}, Δ vs B={delta_c_vs_b:+.4f}")
+        print(f"  Ablation row C: L1 shift={cl1_m:.4f}, delta vs B={delta_c_vs_b:+.4f}")
 
     # ── Phase 4 MuJoCo figure ─────────────────────────────────────────────────
     traj_exists = (RESULTS / "arm_trajectory_chi64.png").exists()

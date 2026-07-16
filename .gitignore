@@ -46,6 +46,10 @@ Thumbs.db
 wandb/
 outputs/
 
+# Kaggle output scratch dirs (kernel pull artifacts)
+kaggle_output*/
+vlam/
+
 # LaTeX build artifacts
 *.aux
 *.log

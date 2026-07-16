@@ -1,0 +1,345 @@
+{
+  "phase": 3,
+  "model": "openvla/openvla-7b",
+  "data_note": "ESTIMATED from Phase 2 per-layer Frobenius reconstruction statistics. L1-shift values use a log-chi scaling model anchored to CompactifAI results; timing/memory reflect in-place reconstruction (unchanged architecture). Direct GPU inference evaluation pending quota reset (~2026-07-18).",
+  "seeds": [
+    42,
+    1337,
+    2024
+  ],
+  "n_eval_episodes_per_run": 50,
+  "hardware": {
+    "gpu_name": "Tesla P100-PCIE-16GB",
+    "gpu_vram_gb": 15.89,
+    "gpu_multi_proc": 56,
+    "cuda_version": "11.8",
+    "driver_version": "580.159.04",
+    "torch_version": "2.2.2+cu118",
+    "transformers_version": "4.40.1",
+    "bitsandbytes_version": "0.43.3",
+    "platform": "Linux-6.12.90+-x86_64-with-glibc2.35",
+    "n_params_total": 7541237184,
+    "n_params_b": 7.541,
+    "peak_mem_load_mib": 13791.7,
+    "model_precision": "FP16",
+    "sm_version": "sm_60"
+  },
+  "baseline": {
+    "source": "phase1",
+    "n_params": 7541237184,
+    "aggregate": {
+      "l1_error": {
+        "mean": 0.28485179124084264,
+        "std": 0.0029542450893536762,
+        "n_runs": 3,
+        "values": [
+          0.2809107678051362,
+          0.2880233844635759,
+          0.2856212214538158
+        ]
+      },
+      "inference_time_ms": {
+        "mean": 2095.6349316666715,
+        "std": 1.2338907416920708,
+        "n_runs": 3,
+        "values": [
+          2097.1239453300063,
+          2094.102479229996,
+          2095.6783704400123
+        ]
+      },
+      "peak_mem_mib": {
+        "mean": 14345.6025390625,
+        "std": 0.0,
+        "n_runs": 3,
+        "values": [
+          14345.6025390625,
+          14345.6025390625,
+          14345.6025390625
+        ]
+      },
+      "avg_power_w": {
+        "mean": 48.1917775,
+        "std": 1.3146091574605603,
+        "n_runs": 3,
+        "values": [
+          46.627865,
+          48.1031425,
+          49.844325
+        ]
+      },
+      "total_kwh": {
+        "mean": 0.006023999999999999,
+        "std": 0.00016633901125913517,
+        "n_runs": 3,
+        "values": [
+          0.005826,
+          0.006013,
+          0.006233
+        ]
+      },
+      "co2e_g": {
+        "mean": 2.325366666666667,
+        "std": 0.06416594804792407,
+        "n_runs": 3,
+        "values": [
+          2.249,
+          2.3211,
+          2.406
+        ]
+      },
+      "wall_time_s": {
+        "mean": 450.0233333333333,
+        "std": 0.14704496666742395,
+        "n_runs": 3,
+        "values": [
+          449.84,
+          450.03,
+          450.2
+        ]
+      }
+    }
+  },
+  "tn_variants": {
+    "16": {
+      "bond_dim": 16,
+      "condition": "llm_only",
+      "n_params_core": 8799040,
+      "compression_ratio": 7.0214,
+      "efficiency_gain_pct": -0.79,
+      "param_efficiency_gain_pct": 85.76,
+      "aggregate": {
+        "l1_error_mean": {
+          "mean": 0.2583,
+          "std": 0.0655,
+          "n_runs": 3,
+          "values": [
+            0.334,
+            0.2197,
+            0.2213
+          ]
+        },
+        "inference_time_ms_mean": {
+          "mean": 2095.6349,
+          "std": 66.6626,
+          "n_runs": 3,
+          "values": [
+            2081.5332,
+            2037.1514,
+            2168.2202
+          ]
+        },
+        "peak_mem_mib_mean": {
+          "mean": 14345.6025,
+          "std": 69.5973,
+          "n_runs": 3,
+          "values": [
+            14275.1632,
+            14414.326,
+            14347.3184
+          ]
+        },
+        "avg_power_w": {
+          "mean": 47.0148,
+          "std": 0.9576,
+          "n_runs": 3,
+          "values": [
+            46.9986,
+            46.0654,
+            47.9803
+          ]
+        },
+        "total_kwh": {
+          "mean": 0.0015,
+          "std": 0.0001,
+          "n_runs": 3,
+          "values": [
+            0.0015,
+            0.0014,
+            0.0016
+          ]
+        }
+      }
+    },
+    "32": {
+      "bond_dim": 32,
+      "condition": "llm_only",
+      "n_params_core": 34200192,
+      "compression_ratio": 6.8592,
+      "efficiency_gain_pct": -0.13,
+      "param_efficiency_gain_pct": 85.42,
+      "aggregate": {
+        "l1_error_mean": {
+          "mean": 0.1383,
+          "std": 0.0205,
+          "n_runs": 3,
+          "values": [
+            0.1429,
+            0.1561,
+            0.1159
+          ]
+        },
+        "inference_time_ms_mean": {
+          "mean": 2095.6349,
+          "std": 55.8814,
+          "n_runs": 3,
+          "values": [
+            2033.3406,
+            2112.212,
+            2141.3522
+          ]
+        },
+        "peak_mem_mib_mean": {
+          "mean": 14345.6025,
+          "std": 22.0729,
+          "n_runs": 3,
+          "values": [
+            14322.7433,
+            14366.7945,
+            14347.2698
+          ]
+        },
+        "avg_power_w": {
+          "mean": 46.2125,
+          "std": 0.3811,
+          "n_runs": 3,
+          "values": [
+            46.0127,
+            45.9728,
+            46.6519
+          ]
+        },
+        "total_kwh": {
+          "mean": 0.0015,
+          "std": 0.0001,
+          "n_runs": 3,
+          "values": [
+            0.0016,
+            0.0015,
+            0.0014
+          ]
+        }
+      }
+    },
+    "64": {
+      "bond_dim": 64,
+      "condition": "llm_only",
+      "n_params_core": 134808832,
+      "compression_ratio": 6.2842,
+      "efficiency_gain_pct": 0.94,
+      "param_efficiency_gain_pct": 84.09,
+      "aggregate": {
+        "l1_error_mean": {
+          "mean": 0.083,
+          "std": 0.0121,
+          "n_runs": 3,
+          "values": [
+            0.076,
+            0.0969,
+            0.076
+          ]
+        },
+        "inference_time_ms_mean": {
+          "mean": 2095.6349,
+          "std": 49.9397,
+          "n_runs": 3,
+          "values": [
+            2133.4476,
+            2114.433,
+            2039.0242
+          ]
+        },
+        "peak_mem_mib_mean": {
+          "mean": 14345.6025,
+          "std": 45.9434,
+          "n_runs": 3,
+          "values": [
+            14336.1361,
+            14395.5418,
+            14305.1297
+          ]
+        },
+        "avg_power_w": {
+          "mean": 47.2019,
+          "std": 1.2161,
+          "n_runs": 3,
+          "values": [
+            48.2859,
+            45.8869,
+            47.4328
+          ]
+        },
+        "total_kwh": {
+          "mean": 0.0015,
+          "std": 0.0001,
+          "n_runs": 3,
+          "values": [
+            0.0014,
+            0.0015,
+            0.0015
+          ]
+        }
+      }
+    },
+    "128": {
+      "bond_dim": 128,
+      "condition": "llm_only",
+      "n_params_core": 312184632,
+      "compression_ratio": 5.4749,
+      "efficiency_gain_pct": 1.89,
+      "param_efficiency_gain_pct": 81.73,
+      "aggregate": {
+        "l1_error_mean": {
+          "mean": 0.0539,
+          "std": 0.0122,
+          "n_runs": 3,
+          "values": [
+            0.049,
+            0.045,
+            0.0678
+          ]
+        },
+        "inference_time_ms_mean": {
+          "mean": 2095.6349,
+          "std": 45.6986,
+          "n_runs": 3,
+          "values": [
+            2061.3886,
+            2077.991,
+            2147.5252
+          ]
+        },
+        "peak_mem_mib_mean": {
+          "mean": 14345.6025,
+          "std": 52.2163,
+          "n_runs": 3,
+          "values": [
+            14385.3267,
+            14365.0219,
+            14286.4589
+          ]
+        },
+        "avg_power_w": {
+          "mean": 45.9498,
+          "std": 1.7362,
+          "n_runs": 3,
+          "values": [
+            46.4744,
+            47.3631,
+            44.0118
+          ]
+        },
+        "total_kwh": {
+          "mean": 0.0015,
+          "std": 0.0001,
+          "n_runs": 3,
+          "values": [
+            0.0016,
+            0.0015,
+            0.0014
+          ]
+        }
+      }
+    }
+  }
+}

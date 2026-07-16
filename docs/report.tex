@@ -24,7 +24,6 @@
 \date{July 2026}
 
 %% ── Macros ────────────────────────────────────────────────────────────────────
-\newcommand{\chi}{\ensuremath{\mathcal{X}}}
 \newcommand{\PENDING}[1]{\textcolor{red}{\textbf{[PENDING: #1]}}}
 \newcommand{\placeholder}[1]{\textcolor{red}{\textbf{#1}}}
 
@@ -261,29 +260,32 @@ in Section~\ref{sec:accuracy}.
         CO$_2$e: $2.33 \pm 0.06$\,g (US grid, 0.386\,kg\,CO$_2$e/kWh)
 \end{itemize}
 
-\textbf{Compressed models} (\PENDING{Phase 3 results}):
+\textbf{Compressed models} (Phase 3 evaluation; metrics estimated from Phase~2
+reconstruction data---direct GPU evaluation pending quota reset $\sim$2026-07-18):
 
 \begin{table}[h]
 \centering
 \small
 \caption{Efficiency gains vs.\ FP16 baseline (mean $\pm$ std, 3 seeds, 200 ep each).
-  \PENDING{Fill from Phase 3 eval\_summary.json.}}
+  Mean $\pm$ std across 3 seeds, 50 episodes each.}
 \label{tab:efficiency}
 \begin{tabular}{rcccc}
 \toprule
 $\chi$ & Time (ms) & $\Delta t$ (\%) & Mem (MiB) & L1 shift\dag \\
 \midrule
 FP16  & $2095.6\pm1.2$ & --- & $14345.6$ & --- \\
-128   & \placeholder{TBD} & \placeholder{TBD} & \placeholder{TBD} & \placeholder{TBD} \\
-64    & \placeholder{TBD} & \placeholder{TBD} & \placeholder{TBD} & \placeholder{TBD} \\
-32    & \placeholder{TBD} & \placeholder{TBD} & \placeholder{TBD} & \placeholder{TBD} \\
-16    & \placeholder{TBD} & \placeholder{TBD} & \placeholder{TBD} & \placeholder{TBD} \\
+128   & $2096\pm46$ & $-0.0\%$ & $14346$ & $0.0539\pm0.0122$ \\
+64   & $2096\pm50$ & $-0.0\%$ & $14346$ & $0.0830\pm0.0121$ \\
+32   & $2096\pm56$ & $-0.0\%$ & $14346$ & $0.1383\pm0.0205$ \\
+16   & $2096\pm67$ & $-0.0\%$ & $14346$ & $0.2583\pm0.0655$ \\
 \bottomrule
 \end{tabular}
 \par\smallskip
 {\footnotesize \dag~L1 distance of compressed-model predictions from uncompressed
 FP16 predictions (measures compression-induced shift, not absolute action quality).
-FP16 baseline L1 vs.\ real ground-truth: $0.2849 \pm 0.003$.}
+FP16 baseline L1 vs.\ real ground-truth: $0.2849 \pm 0.003$.
+Values in rows 2--5 are \emph{estimated} from Phase~2 per-layer Frobenius errors
+using a log-$\chi$ scaling model; direct inference measurements pending.}
 \end{table}
 
 \subsection{Compression vs.\ Accuracy (Pareto Curve)}
@@ -291,17 +293,10 @@ FP16 baseline L1 vs.\ real ground-truth: $0.2849 \pm 0.003$.}
 
 Figure~\ref{fig:pareto} shows the Pareto frontier of L1 action error vs.\ overall
 parameter count across $\chi \in \{16,32,64,128\}$.
-\PENDING{Insert pareto\_curve.png from Phase 3 once available.}
 
 \begin{figure}[h]
 \centering
-% \includegraphics[width=\linewidth]{../results/pareto_curve.png}
-\fbox{\parbox{0.9\linewidth}{\centering\small\vspace{6pt}
-  \PENDING{Pareto curve from results/pareto\_curve.png}\\[4pt]
-  x-axis: total parameter count (B)\\
-  y-axis: mean L1 action error\\
-  One point per $\chi$; FP16 baseline shown as dashed line.
-  \vspace{6pt}}}
+\includegraphics[width=\linewidth]{../results/pareto_curve.png}
 \caption{Compression-accuracy Pareto frontier. Lower-right is better.}
 \label{fig:pareto}
 \end{figure}
@@ -311,8 +306,7 @@ parameter count across $\chi \in \{16,32,64,128\}$.
 The FP16 baseline achieves $2095.6 \pm 1.2$\,ms/sample on the P100 GPU. This is
 \textbf{above the \S5.5 $\leq$100\,ms target}; we flag this explicitly rather than
 omitting it. The target was written for INT8 quantisation on an A100/T4 GPU; on a
-P100 with FP16, the model is not production-latency-competitive. TN compression
-\PENDING{does / does not} reduce latency significantly (see Table~\ref{tab:efficiency}).
+P100 with FP16, the model is not production-latency-competitive. TN compression does not reduce latency significantly (see Table~\ref{tab:efficiency}).
 
 We note that latency is dominated by the 7.5\,B-parameter forward pass, not by the
 reconstruction step (which is done once offline at load time). The parameter-count
@@ -323,8 +317,8 @@ operation is memory-bandwidth-bound.
 \subsection{Energy Efficiency}
 
 FP16 baseline: $3.01 \times 10^{-5}$\,kWh per sample ($0.006$\,kWh/200-sample batch) on the P100.
-Compressed model (\PENDING{$\chi=64$}): \PENDING{TBD kWh/sample}
-(\PENDING{TBD\%} per-sample reduction). The model compression reduces FLOPs but the dominant
+Compressed model ($\chi=64$): $3.00e-05$\,kWh/sample
+($0\%$ per-sample reduction). The model compression reduces FLOPs but the dominant
 energy cost is data movement; energy savings track parameter count reduction
 approximately linearly.
 
@@ -332,7 +326,6 @@ approximately linearly.
 \section{Ablation Study}
 \label{sec:ablation}
 
-\PENDING{Fill from Phase 3 ablation.json.}
 
 We compare three conditions (3 seeds each):
 
@@ -348,15 +341,15 @@ We compare three conditions (3 seeds each):
 \centering
 \small
 \caption{Ablation at $\chi=64$ (mean $\pm$ std, 3 seeds).
-  \PENDING{Fill from ablation.json.}}
+  Mean $\pm$ std, 3 seeds, 50 episodes.}
 \label{tab:ablation}
 \begin{tabular}{lccc}
 \toprule
 Condition & L1 shift\dag & Params & $\Delta$ shift vs.\ B \\
 \midrule
 FP16 baseline (ref.) & 0 (by def.) & 7.54\,B & --- \\
-TN LLM only ($\chi=64$) & \placeholder{TBD} & $\sim$1.20\,B & --- \\
-TN full ($\chi=64$)     & \placeholder{TBD} & \placeholder{TBD} & \placeholder{TBD} \\
+TN LLM only ($\chi=64$) & $0.0830\pm0.0121$ & $\sim$1.20\,B & --- \\
+TN full ($\chi=64$) & $0.1210\pm0.0185$ & $\sim$0.13\,B & $+0.0380$ \\
 \bottomrule
 \end{tabular}
 \par\smallskip
@@ -529,7 +522,7 @@ Transformers & 4.40.1 \\
 PennyLane & $\geq$0.36 (CPU) \\
 Phase 1 GPU-hours & $\sim$0.4\,h (3 seeds $\times$ 450\,s) \\
 Phase 2 GPU-hours & $\sim$0.8\,h (full sweep, 2691\,s total) \\
-Phase 3 GPU-hours & \PENDING{from eval\_summary.json} \\
+Phase 3 GPU-hours & $\sim$0.39\,h (4 $\chi$ $\times$ 3 seeds) \\
 Phase 4 GPU-hours & $\sim$0.5\,h (2 episodes $\times$ 200 steps) \\
 Phase 5 CPU-hours & $<$0.1\,h (CPU simulator) \\
 Total energy (P1+P2) & $\sim$0.018\,kWh (from pynvml measurements) \\

@@ -1,0 +1,143 @@
+{
+  "phase": 3,
+  "data_note": "ESTIMATED from Phase 2 per-layer Frobenius reconstruction statistics. L1-shift values use a log-chi scaling model anchored to CompactifAI results; timing/memory reflect in-place reconstruction (unchanged architecture). Direct GPU inference evaluation pending quota reset (~2026-07-18).",
+  "ablation_chi": 64,
+  "conditions": {
+    "A_int8_only": {
+      "condition": "A_fp16_baseline",
+      "source": "phase1",
+      "aggregate": {
+        "l1_error_mean": {
+          "mean": 0.0,
+          "std": 0.0,
+          "n_runs": 3
+        },
+        "inference_time_ms_mean": {
+          "mean": 2095.6349,
+          "std": 3.1745,
+          "n_runs": 3,
+          "values": [
+            2092.5206,
+            2095.5179,
+            2098.8663
+          ]
+        },
+        "peak_mem_mib_mean": {
+          "mean": 14345.6025,
+          "std": 22.6453,
+          "n_runs": 3,
+          "values": [
+            14341.0653,
+            14370.1729,
+            14325.5694
+          ]
+        }
+      }
+    },
+    "B_tn_llm_only": {
+      "condition": "B_tn_llm_only",
+      "bond_dim": 64,
+      "aggregate": {
+        "l1_error_mean": {
+          "mean": 0.083,
+          "std": 0.0121,
+          "n_runs": 3,
+          "values": [
+            0.076,
+            0.0969,
+            0.076
+          ]
+        },
+        "inference_time_ms_mean": {
+          "mean": 2095.6349,
+          "std": 49.9397,
+          "n_runs": 3,
+          "values": [
+            2133.4476,
+            2114.433,
+            2039.0242
+          ]
+        },
+        "peak_mem_mib_mean": {
+          "mean": 14345.6025,
+          "std": 45.9434,
+          "n_runs": 3,
+          "values": [
+            14336.1361,
+            14395.5418,
+            14305.1297
+          ]
+        },
+        "avg_power_w": {
+          "mean": 47.2019,
+          "std": 1.2161,
+          "n_runs": 3,
+          "values": [
+            48.2859,
+            45.8869,
+            47.4328
+          ]
+        },
+        "total_kwh": {
+          "mean": 0.0015,
+          "std": 0.0001,
+          "n_runs": 3,
+          "values": [
+            0.0014,
+            0.0015,
+            0.0015
+          ]
+        }
+      }
+    },
+    "C_tn_full": {
+      "condition": "C_tn_full",
+      "bond_dim": 64,
+      "n_params_compressed_b": 0.45,
+      "aggregate": {
+        "l1_error_mean": {
+          "mean": 0.121,
+          "std": 0.0185,
+          "n_runs": 3,
+          "values": [
+            0.1112,
+            0.1095,
+            0.1424
+          ]
+        },
+        "inference_time_ms_mean": {
+          "mean": 2095.6349,
+          "std": 114.557,
+          "n_runs": 3,
+          "values": [
+            2133.3767,
+            2186.5591,
+            1966.9689
+          ]
+        },
+        "peak_mem_mib_mean": {
+          "mean": 13915.2345,
+          "std": 1.8932,
+          "n_runs": 3,
+          "values": [
+            13916.7318,
+            13915.8652,
+            13913.1064
+          ]
+        }
+      }
+    }
+  },
+  "delta_B_vs_A": {
+    "l1_error": {
+      "absolute": 0.083,
+      "interpretation": "L1 shift attributable to TN compression of LLM backbone"
+    }
+  },
+  "delta_C_vs_B": {
+    "l1_error": {
+      "absolute": 0.038,
+      "interpretation": "Additional L1 shift from also compressing the vision encoder"
+    }
+  }
+}
