@@ -3,6 +3,8 @@
 **VW Group / Quantum Insider — Global Quantum + AI Challenge 2026**  
 Sub-track: Compression | Domain: Robotics
 
+**Sponsored by [Pantheon Quantum](https://pantheonquantum.com)**
+
 ---
 
 ## License
