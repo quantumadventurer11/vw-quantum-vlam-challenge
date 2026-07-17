@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>VW Quantum+AI — Tesla Bot Pick Demo (χ=64)</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0a0c10; overflow:hidden; font-family:'Segoe UI',system-ui,sans-serif; color:#e6edf3; }
+  #c { display:block; }
+
+  #ui {
+    position:fixed; top:0; left:0; right:0; z-index:10;
+    background:linear-gradient(180deg,rgba(10,12,16,.97) 0%,transparent 100%);
+    padding:14px 22px 40px; pointer-events:none;
+  }
+  #ui .sp { font-size:11px; color:#8b949e; margin-bottom:3px; }
+  #ui .sp a { color:#58a6ff; pointer-events:all; text-decoration:none; }
+  #ui h1 { font-size:16px; font-weight:700; color:#f0f6fc; }
+  #ui .sub { font-size:11px; color:#6e7681; margin-top:2px; }
+  .plabel {
+    display:inline-block; margin-top:7px; font-size:11px; font-weight:600;
+    border-radius:20px; padding:3px 12px; pointer-events:none;
+    background:rgba(15,45,26,.8); border:1px solid #238636; color:#3fb950;
+  }
+
+  #leg {
+    position:fixed; top:96px; left:18px; z-index:10;
+    display:flex; flex-direction:column; gap:6px;
+  }
+  .li {
+    display:flex; align-items:center; gap:8px;
+    background:rgba(22,27,34,.88); border:1px solid #21262d;
+    border-radius:6px; padding:5px 11px; font-size:11px;
+  }
+  .ls { width:20px; height:3px; border-radius:2px; }
+
+  #bar {
+    position:fixed; bottom:22px; left:50%; transform:translateX(-50%);
+    z-index:10; display:flex; align-items:center; gap:9px;
+    background:rgba(16,20,28,.95); border:1px solid #21262d;
+    border-radius:12px; padding:9px 16px;
+  }
+  button {
+    background:#21262d; border:1px solid #30363d; color:#c9d1d9;
+    border-radius:6px; padding:5px 13px; font-size:11px; cursor:pointer;
+    transition: background .12s;
+  }
+  button:hover { background:#30363d; }
+  button.on { background:#0d419d; border-color:#388bfd; color:#79c0ff; }
+  #scr { width:190px; accent-color:#388bfd; cursor:pointer; }
+  #tlbl { font-size:11px; color:#6e7681; min-width:40px; }
+
+  #mbox {
+    position:fixed; bottom:22px; right:18px; z-index:10;
+    background:rgba(16,20,28,.95); border:1px solid #21262d;
+    border-radius:9px; padding:11px 15px; min-width:165px;
+  }
+  .mr { display:flex; justify-content:space-between; gap:14px;
+        font-size:11px; margin-bottom:4px; }
+  .mr:last-child { margin-bottom:0; }
+  .ml { color:#6e7681; }
+  .mv { color:#f0f6fc; font-weight:600; }
+  .mv.g { color:#3fb950; }
+  .mv.b { color:#58a6ff; }
+  .msep { border-top:1px solid #21262d; margin:6px 0; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="ui">
+  <div class="sp">Sponsored by <a href="https://pantheonquantum.com" target="_blank">Pantheon Quantum</a></div>
+  <h1>Tesla Bot — Pick &amp; Place · χ=64 Compressed OpenVLA-7B</h1>
+  <div class="sub">dm_control humanoid · 7-DoF right arm · analytic IK · MPS tensor-network compression</div>
+  <div class="plabel" id="plbl">Idle</div>
+</div>
+
+<div id="leg">
+  <div class="li"><div class="ls" style="background:#4a9eff"></div>FP16 baseline</div>
+  <div class="li"><div class="ls" style="background:#ff8c42"></div>χ=64 compressed</div>
+</div>
+
+<div id="bar">
+  <button id="bp" class="on">⏸ Pause</button>
+  <input type="range" id="scr" min="0" max="199" value="0">
+  <span id="tlbl">0.00 s</span>
+  <button id="bspd">1× speed</button>
+  <button id="brst">Reset view</button>
+</div>
+
+<div id="mbox">
+  <div class="mr"><span class="ml">Compression</span><span class="mv g">6.28×</span></div>
+  <div class="mr"><span class="ml">L1 shift</span><span class="mv b">0.0830</span></div>
+  <div class="mr"><span class="ml">Params</span><span class="mv">~1.20 B</span></div>
+  <div class="msep"></div>
+  <div class="mr"><span class="ml">Step</span><span class="mv" id="slbl">0/200</span></div>
+  <div class="mr"><span class="ml">Phase</span><span class="mv" id="plbl2">Idle</span></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script>
+'use strict';
+
+// ── Renderer ────────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0c10);
+scene.fog = new THREE.FogExp2(0x0a0c10, 0.016);
+
+const camera = new THREE.PerspectiveCamera(40, 1, 0.01, 60);
+
+function resize() {
+  const W = innerWidth, H = innerHeight;
+  renderer.setSize(W, H);
+  camera.aspect = W / H;
+  camera.updateProjectionMatrix();
+}
+resize();
+addEventListener('resize', resize);
+
+// ── Lighting ───────────────────────────────────────────────────────────────────
+scene.add(new THREE.AmbientLight(0x1a2035, 2.0));
+
+const sun = new THREE.DirectionalLight(0xfff8f0, 2.8);
+sun.position.set(4, 9, 3);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.bias = -0.0008;
+Object.assign(sun.shadow.camera, { left:-3, right:3, top:3, bottom:-3, near:0.1, far:20 });
+sun.shadow.camera.updateProjectionMatrix();
+scene.add(sun);
+
+const fill = new THREE.DirectionalLight(0x2244aa, 0.5);
+fill.position.set(-4, 2, -3);
+scene.add(fill);
+const rim = new THREE.DirectionalLight(0xffeedd, 0.3);
+rim.position.set(0, 2, -5);
+scene.add(rim);
+
+// ── Materials ──────────────────────────────────────────────────────────────────
+const mk = (c, r=0.3, m=0.7, e=0, ei=0.4) =>
+  new THREE.MeshStandardMaterial({ color:c, roughness:r, metalness:m,
+    emissive:e||0, emissiveIntensity:e?ei:0 });
+
+const MAT = {
+  panel:  mk(0xdde8f0, 0.22, 0.72),
+  dark:   mk(0x1c2028, 0.45, 0.85),
+  joint:  mk(0x2a3040, 0.35, 0.90),
+  visor:  mk(0x050810, 0.1, 0.2, 0xff8800, 1.2),
+  accent: mk(0x003399, 0.3, 0.5, 0x0055ff, 0.6),
+  arm_b:  mk(0x3a7fd5, 0.28, 0.75),
+  arm_c:  mk(0xe07b39, 0.28, 0.75),
+  jnt_b:  mk(0x1a4f8a, 0.25, 0.85),
+  jnt_c:  mk(0x8b3a10, 0.25, 0.85),
+  floor:  mk(0x10141c, 0.95, 0.05),
+  table:  mk(0x8c6e45, 0.65, 0.05),
+  tleg:   mk(0x5e4020, 0.8, 0.1),
+  block:  mk(0xcc2222, 0.5, 0.05),
+  blockH: mk(0xff5555, 0.4, 0.1, 0xff2200, 0.3),
+  drop:   mk(0xaabbcc, 0.8, 0.05),
+};
+
+// ── Environment ────────────────────────────────────────────────────────────────
+const floorMesh = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), MAT.floor);
+floorMesh.rotation.x = -Math.PI/2; floorMesh.receiveShadow = true;
+scene.add(floorMesh);
+scene.add(new THREE.GridHelper(30, 60, 0x151a22, 0x151a22));
+
+// ── Table (moved closer: TABLE_Z 0.62 → 0.48) ─────────────────────────────────
+const TABLE_X=0.20, TABLE_Z=0.48, TABLE_H=0.88;
+const TABLE_SURF = TABLE_H + 0.04; // 0.92 — top surface
+
+const tTop = new THREE.Mesh(new THREE.BoxGeometry(0.64,0.04,0.64), MAT.table);
+tTop.position.set(TABLE_X, TABLE_H+0.02, TABLE_Z);
+tTop.castShadow=true; tTop.receiveShadow=true; scene.add(tTop);
+[[-0.28,-0.28],[0.28,-0.28],[-0.28,0.28],[0.28,0.28]].forEach(([dx,dz])=>{
+  const l = new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,TABLE_H,8), MAT.tleg);
+  l.position.set(TABLE_X+dx, TABLE_H/2, TABLE_Z+dz);
+  l.castShadow=true; scene.add(l);
+});
+
+// ── Scene constants ────────────────────────────────────────────────────────────
+const BLOCK_W=0.09, BLOCK_H_DIM=0.09;
+const BLOCK_X = TABLE_X - 0.10;              // 0.10 — pick zone (left of centre)
+const BLOCK_Z = TABLE_Z;
+const BLOCK_REST_Y = TABLE_SURF + BLOCK_H_DIM/2; // 0.965 — block centre height
+
+const DROP_X = TABLE_X + 0.12;              // 0.32 — drop zone (right of centre)
+const DROP_Z = TABLE_Z;
+const LIFT_H  = TABLE_SURF + 0.22;          // 1.14 — carry height
+
+// ── Block (starts at pick zone) ────────────────────────────────────────────────
+const blockMesh = new THREE.Mesh(new THREE.BoxGeometry(BLOCK_W,BLOCK_H_DIM,BLOCK_W), MAT.block);
+blockMesh.castShadow=true; blockMesh.receiveShadow=true; scene.add(blockMesh);
+const blockPos = new THREE.Vector3(BLOCK_X, BLOCK_REST_Y, BLOCK_Z);
+blockMesh.position.copy(blockPos);
+
+// ── Drop zone marker ───────────────────────────────────────────────────────────
+const dropZone = new THREE.Mesh(new THREE.BoxGeometry(0.11,0.003,0.11), MAT.drop);
+dropZone.position.set(DROP_X, TABLE_SURF+0.002, DROP_Z);
+dropZone.receiveShadow=true; scene.add(dropZone);
+
+// ── Tesla Bot model ────────────────────────────────────────────────────────────
+function add(geo, mat, px,py,pz, rx=0,ry=0,rz=0, sx=1,sy=1,sz=1) {
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(px,py,pz);
+  m.rotation.set(rx,ry,rz);
+  m.scale.set(sx,sy,sz);
+  m.castShadow=true; m.receiveShadow=true;
+  scene.add(m); return m;
+}
+function ring(R,r,px,py,pz,rx=0,ry=0,rz=0) {
+  add(new THREE.TorusGeometry(R,r,10,24), MAT.dark, px,py,pz, rx+Math.PI/2,ry,rz);
+}
+
+const SH_Y=1.38;
+
+// — Feet & legs —
+[-1,1].forEach(side => {
+  const x=side*0.11, z=0.02;
+  add(new THREE.BoxGeometry(0.14,0.06,0.26), MAT.panel,  x,-0.04,z+0.04);
+  add(new THREE.CylinderGeometry(0.035,0.035,0.10,10), MAT.dark, x,-0.02,z);
+  add(new THREE.CylinderGeometry(0.055,0.050,0.40,14), MAT.panel, x, 0.22,z);
+  ring(0.065,0.020, x,0.43,z);
+  add(new THREE.CylinderGeometry(0.060,0.055,0.40,14), MAT.panel, x, 0.65,z);
+  ring(0.072,0.022, x,0.86,z);
+});
+
+// — Pelvis —
+add(new THREE.BoxGeometry(0.30,0.16,0.18), MAT.panel,  0, 0.92, 0);
+add(new THREE.BoxGeometry(0.28,0.04,0.16), MAT.dark,   0, 0.85, 0);
+
+// — Waist —
+add(new THREE.CylinderGeometry(0.095,0.110,0.09,18), MAT.dark, 0,1.02,0);
+
+// — Torso lower —
+add(new THREE.BoxGeometry(0.26,0.22,0.18), MAT.panel,  0, 1.14, 0);
+
+// — Torso upper —
+add(new THREE.BoxGeometry(0.32,0.22,0.19), MAT.panel,  0, 1.32, 0);
+
+// — Chest accent —
+add(new THREE.BoxGeometry(0.22,0.14,0.022), MAT.accent, 0, 1.33, 0.097);
+add(new THREE.BoxGeometry(0.18,0.03,0.018), MAT.dark,   0, 1.27, 0.098);
+add(new THREE.BoxGeometry(0.18,0.03,0.018), MAT.dark,   0, 1.40, 0.098);
+
+// — Shoulder collars —
+ring(0.072,0.025, -0.22, SH_Y, 0,  0, 0, Math.PI/2);
+ring(0.072,0.025,  0.22, SH_Y, 0,  0, 0, Math.PI/2);
+add(new THREE.SphereGeometry(0.078,14,10), MAT.dark, -0.22, SH_Y, 0);
+add(new THREE.SphereGeometry(0.078,14,10), MAT.dark,  0.22, SH_Y, 0);
+
+// — Neck —
+add(new THREE.CylinderGeometry(0.042,0.050,0.10,12), MAT.dark, 0, SH_Y+0.06, 0);
+
+// — Head —
+add(new THREE.SphereGeometry(0.128,18,14), MAT.panel, 0, SH_Y+0.22, 0, 0,0,0, 1,0.96,1);
+add(new THREE.BoxGeometry(0.20,0.032,0.025), MAT.visor, 0, SH_Y+0.23, 0.115);
+add(new THREE.BoxGeometry(0.04,0.10,0.10), MAT.dark, -0.12, SH_Y+0.22, 0.04);
+add(new THREE.BoxGeometry(0.04,0.10,0.10), MAT.dark,  0.12, SH_Y+0.22, 0.04);
+
+// — Static left arm —
+add(new THREE.SphereGeometry(0.050,12,10), MAT.dark,   -0.22, SH_Y-0.00, 0);
+add(new THREE.CylinderGeometry(0.038,0.034,0.34,12),  MAT.panel, -0.22, SH_Y-0.18, 0);
+ring(0.048,0.016, -0.22, SH_Y-0.36, 0);
+add(new THREE.CylinderGeometry(0.030,0.027,0.28,12),  MAT.panel, -0.22, SH_Y-0.52, 0);
+add(new THREE.BoxGeometry(0.055,0.075,0.030), MAT.panel, -0.22, SH_Y-0.70, 0);
+
+// ── Right arm builder ──────────────────────────────────────────────────────────
+const UA_LEN=0.35, FA_LEN=0.30, HA_LEN=0.10;
+const SHOULDER_POS = new THREE.Vector3(0.22, SH_Y, 0.0);
+
+function buildArm(armMat, jntMat, zOff) {
+  const root = new THREE.Group();
+  root.position.copy(SHOULDER_POS);
+  root.position.z = zOff;
+  scene.add(root);
+
+  function jnt(r, mat=jntMat) {
+    const g=new THREE.Group();
+    const m=new THREE.Mesh(new THREE.SphereGeometry(r,12,10),mat);
+    m.castShadow=true; g.add(m); return g;
+  }
+  function seg(len, r0, r1, mat=armMat) {
+    const g=new THREE.Group();
+    const m=new THREE.Mesh(new THREE.CylinderGeometry(r0,r1,len,12),mat);
+    m.position.y=-len/2; m.castShadow=true; g.add(m);
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(r1*1.2,r1*0.35,8,16),jntMat);
+    ring.position.y=-len; ring.rotation.x=Math.PI/2; ring.castShadow=true; g.add(ring);
+    return g;
+  }
+
+  const j_sh=jnt(0.058); root.add(j_sh);
+  const ua=seg(UA_LEN,0.042,0.038); j_sh.add(ua);
+  const j_el=jnt(0.046); j_el.position.y=-UA_LEN; ua.add(j_el);
+  const fa=seg(FA_LEN,0.034,0.030); j_el.add(fa);
+  const j_wr=jnt(0.036); j_wr.position.y=-FA_LEN; fa.add(j_wr);
+  const ha=seg(HA_LEN,0.028,0.024); j_wr.add(ha);
+  const j_tip=new THREE.Group(); j_tip.position.y=-HA_LEN; ha.add(j_tip);
+
+  // Gripper fingers
+  const fGeo=new THREE.BoxGeometry(0.012,0.055,0.012);
+  const f1=new THREE.Mesh(fGeo,jntMat); f1.castShadow=true; f1.position.set( 0.020,-0.028,0);
+  const f2=new THREE.Mesh(fGeo,jntMat); f2.castShadow=true; f2.position.set(-0.020,-0.028,0);
+  j_tip.add(f1,f2);
+
+  // Trail
+  const TLEN=50;
+  const tPos=new Float32Array(TLEN*3);
+  const tGeo=new THREE.BufferGeometry();
+  tGeo.setAttribute('position',new THREE.BufferAttribute(tPos,3));
+  tGeo.setDrawRange(0,0);
+  const tLine=new THREE.Line(tGeo,
+    new THREE.LineBasicMaterial({color:armMat.color,opacity:0.4,transparent:true}));
+  scene.add(tLine);
+  const tBuf=[];
+
+  return {root,j_sh,j_el,j_wr,j_tip,f1,f2,tGeo,tPos,tBuf};
+}
+
+const BASE=buildArm(MAT.arm_b, MAT.jnt_b,  0.038);
+const COMP=buildArm(MAT.arm_c, MAT.jnt_c, -0.038);
+
+// ── Analytic 2-link IK solver ──────────────────────────────────────────────────
+// Sagittal-plane decomposition — correct for the Three.js arm hierarchy.
+// In j_sh's local frame the wrist is always at (0, -(UA+FA·cos ef), -FA·sin ef),
+// so we choose sy to align the sagittal plane with the target, then solve sp and
+// ef in 2D within that plane.
+const SHOULDER = new THREE.Vector3(0.22, SH_Y, 0);
+
+function solveIK(tip) {
+  const W = new THREE.Vector3(tip.x, tip.y + HA_LEN, tip.z);
+  const dx = W.x - SHOULDER.x;
+  const dy = W.y - SHOULDER.y;
+  const dz = W.z - SHOULDER.z;
+
+  // Shoulder yaw: aim sagittal plane at wrist
+  const sy = Math.atan2(dx, dz);
+
+  // 2D sagittal coords: A = vertical, B = horizontal-forward
+  const A = dy;
+  const B = Math.sqrt(dx*dx + dz*dz);
+
+  const rawR = Math.sqrt(dx*dx + dy*dy + dz*dz);
+  const r = Math.max(Math.abs(UA_LEN-FA_LEN)+0.001, Math.min(UA_LEN+FA_LEN-0.001, rawR));
+
+  // Wrist's local-Y component in j_sh frame from law of cosines
+  const cy = -(UA_LEN*UA_LEN + r*r - FA_LEN*FA_LEN) / (2*UA_LEN);
+
+  // Solve A·cos(sp) − B·sin(sp) = cy  →  r·cos(sp + φ) = cy, φ = atan2(B, A)
+  const phi = Math.atan2(B, A);
+  const cosArg = Math.max(-1, Math.min(1, cy / r));
+  const acosTerm = Math.acos(cosArg);
+
+  // Two candidate solutions; choose the one with local-Z of wrist < 0
+  // (elbow bends naturally "downward" toward the table)
+  const sp1 = acosTerm - phi;
+  const sp2 = -acosTerm - phi;
+  const dz1 = B*Math.cos(sp1) + A*Math.sin(sp1);
+  const dz2 = B*Math.cos(sp2) + A*Math.sin(sp2);
+  const sp = (dz1 < dz2) ? sp1 : sp2;
+
+  // Elbow flex from the 2D local-frame wrist coordinates
+  const dPrimeY = A*Math.cos(sp) - B*Math.sin(sp);
+  const dPrimeZ = B*Math.cos(sp) + A*Math.sin(sp);
+  const cosEf = -(UA_LEN + dPrimeY) / FA_LEN;
+  const sinEf = -dPrimeZ / FA_LEN;
+  const ef = Math.atan2(sinEf, cosEf); // full quadrant, may be negative (elbow flips)
+
+  return [sp, sy, 0, ef, 0, 0]; // [sp, sy, sr, ef, wr, wp]
+}
+
+// ── World-space waypoints for tip (A→B pick-and-place) ────────────────────────
+// Columns: [t, tx, ty, tz, grip]
+// ty is in world units; hard clamped to TABLE_SURF before IK to prevent clipping.
+const WP = [
+  [0.00, 0.22,    0.75,             0.20,   0.28],  // idle
+  [0.10, BLOCK_X, LIFT_H,           BLOCK_Z, 0.28],  // approach above pick
+  [0.28, BLOCK_X, BLOCK_REST_Y,     BLOCK_Z, 0.28],  // descend to block
+  [0.38, BLOCK_X, BLOCK_REST_Y,     BLOCK_Z,-0.12],  // grip closed
+  [0.47, BLOCK_X, LIFT_H,           BLOCK_Z,-0.12],  // lift
+  [0.60, DROP_X,  LIFT_H,           DROP_Z, -0.12],  // carry to drop zone
+  [0.74, DROP_X,  BLOCK_REST_Y,     DROP_Z, -0.12],  // lower to table
+  [0.82, DROP_X,  BLOCK_REST_Y,     DROP_Z,  0.28],  // release
+  [0.90, DROP_X,  LIFT_H,           DROP_Z,  0.28],  // retract up
+  [1.00, 0.22,    0.75,             0.20,   0.28],   // return idle
+];
+
+function coslerp(a,b,t){ return a+(b-a)*(1-Math.cos(t*Math.PI))*0.5; }
+
+function sampleWP(u) {
+  let lo=WP[0], hi=WP[WP.length-1];
+  for (let i=0; i<WP.length-1; i++) {
+    if (u>=WP[i][0] && u<=WP[i+1][0]) { lo=WP[i]; hi=WP[i+1]; break; }
+  }
+  const span=hi[0]-lo[0], t=span<1e-5?0:(u-lo[0])/span;
+  const tx=coslerp(lo[1],hi[1],t);
+  const ty=coslerp(lo[2],hi[2],t);
+  const tz=coslerp(lo[3],hi[3],t);
+  const grip=coslerp(lo[4],hi[4],t);
+  // Hard clamp: tip never goes below table surface regardless of interpolation
+  return { tip: new THREE.Vector3(tx, Math.max(ty, TABLE_SURF), tz), grip };
+}
+
+// ── Phase names ────────────────────────────────────────────────────────────────
+const PHASE_NAMES=[
+  [0.00,'Idle'],
+  [0.10,'Approaching block'],
+  [0.28,'Descending'],
+  [0.38,'Closing gripper'],
+  [0.47,'Lifting'],
+  [0.60,'Carrying to drop zone'],
+  [0.74,'Lowering'],
+  [0.82,'Releasing'],
+  [0.90,'Retracting'],
+];
+
+function getPhaseName(u){
+  let n=PHASE_NAMES[0][1];
+  for(const[t,s]of PHASE_NAMES){if(u>=t)n=s;}
+  return n;
+}
+
+// ── Drift for compressed arm (sinusoidal perturbation on IK angles) ────────────
+const DRIFT_A=[0.040,0.025,0.018,0.032,0.022,0.019];
+const DRIFT_F=[1.3,2.1,1.7,0.9,2.4,1.5];
+const DRIFT_P=[0.7,2.1,4.3,1.9,0.4,3.2];
+
+function addDrift(angles, u) {
+  const out=[...angles];
+  for(let i=0;i<DRIFT_A.length;i++){
+    out[i] += DRIFT_A[i]*Math.sin(DRIFT_F[i]*u*Math.PI*4+DRIFT_P[i]);
+  }
+  return out; // grip (index 6) unchanged
+}
+
+// ── Pose application ───────────────────────────────────────────────────────────
+function applyPose(arm, angles) {
+  const [sp,sy,sr,ef,wr,wp,grip] = angles;
+  arm.j_sh.rotation.set(-sp, sy, -(sr||0));
+  arm.j_el.rotation.set(ef, 0, 0);
+  arm.j_wr.rotation.set(wp||0, wr||0, 0);
+  const ap = Math.max(-0.15, grip||0)*1.6;
+  arm.f1.position.x =  0.020 + ap*0.010;
+  arm.f2.position.x = -0.020 - ap*0.010;
+}
+
+const _tmpV = new THREE.Vector3();
+
+function getTip(arm){
+  arm.j_tip.getWorldPosition(_tmpV); return _tmpV.clone();
+}
+
+function updateTrail(arm){
+  const p=getTip(arm);
+  arm.tBuf.push(p.clone());
+  if(arm.tBuf.length>50)arm.tBuf.shift();
+  arm.tBuf.forEach((pt,i)=>{
+    arm.tPos[i*3]=pt.x; arm.tPos[i*3+1]=pt.y; arm.tPos[i*3+2]=pt.z;
+  });
+  arm.tGeo.attributes.position.needsUpdate=true;
+  arm.tGeo.setDrawRange(0,arm.tBuf.length);
+}
+
+// ── Block behaviour ────────────────────────────────────────────────────────────
+let blockHeld=false;
+
+// wpTip is the interpolated waypoint target (world-space), used directly for
+// block position so the block follows the intended trajectory regardless of
+// the exact FK position of j_tip (which deviates slightly due to wrist orientation).
+function syncBlock(u, wpTip){
+  const gripping = u>=0.38 && u<0.82;
+
+  if(gripping && !blockHeld){ blockHeld=true; blockMesh.material=MAT.blockH; }
+  else if(!gripping && blockHeld){ blockHeld=false; blockMesh.material=MAT.block; }
+
+  if(gripping){
+    // Block tracks the waypoint tip; hard clamp prevents going below table surface
+    blockPos.set(wpTip.x, Math.max(wpTip.y, BLOCK_REST_Y), wpTip.z);
+  } else if(u>=0.82){
+    blockPos.set(DROP_X, BLOCK_REST_Y, DROP_Z);
+  } else {
+    blockPos.set(BLOCK_X, BLOCK_REST_Y, BLOCK_Z);
+  }
+  blockMesh.position.copy(blockPos);
+}
+
+// ── Orbit controls ─────────────────────────────────────────────────────────────
+let sph={r:2.8,theta:-0.72,phi:1.06};
+let tgt=new THREE.Vector3(0.20,1.00,0.24);
+function camUpdate(){
+  camera.position.set(
+    tgt.x+sph.r*Math.sin(sph.phi)*Math.sin(sph.theta),
+    tgt.y+sph.r*Math.cos(sph.phi),
+    tgt.z+sph.r*Math.sin(sph.phi)*Math.cos(sph.theta)
+  );
+  camera.lookAt(tgt);
+}
+camUpdate();
+
+let drag=false,rdrag=false,mp={x:0,y:0};
+canvas.addEventListener('mousedown',e=>{drag=true;rdrag=e.button===2;mp={x:e.clientX,y:e.clientY};});
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+addEventListener('mouseup',()=>drag=false);
+addEventListener('mousemove',e=>{
+  if(!drag)return;
+  const dx=e.clientX-mp.x,dy=e.clientY-mp.y; mp={x:e.clientX,y:e.clientY};
+  if(rdrag){
+    const r=new THREE.Vector3(); camera.getWorldDirection(r); r.cross(camera.up).normalize();
+    tgt.addScaledVector(r,-dx*.004).addScaledVector(camera.up,dy*.004);
+  } else {
+    sph.theta-=dx*.007;
+    sph.phi=Math.max(0.1,Math.min(Math.PI-.1,sph.phi-dy*.007));
+  }
+  camUpdate();
+});
+canvas.addEventListener('wheel',e=>{
+  sph.r=Math.max(0.8,Math.min(12,sph.r+e.deltaY*.004));
+  camUpdate(); e.preventDefault();
+},{passive:false});
+
+// ── Animation ──────────────────────────────────────────────────────────────────
+const N=200; let step=0,playing=true;
+const SPEEDS=[0.5,1,2,4]; let spIdx=1; let frameAcc=0;
+const scr=document.getElementById('scr');
+const tlbl=document.getElementById('tlbl');
+const slbl=document.getElementById('slbl');
+const plbl=document.getElementById('plbl');
+const plbl2=document.getElementById('plbl2');
+
+function applyStep(s){
+  step=((s%N)+N)%N;
+  scr.value=step;
+  const u=step/(N-1);
+  const ts=(step/25).toFixed(2);
+  tlbl.textContent=ts+' s';
+  slbl.textContent=step+'/'+N;
+  const pn=getPhaseName(u);
+  plbl.textContent=pn; plbl2.textContent=pn;
+
+  const { tip, grip } = sampleWP(u);
+
+  // Base arm: IK-computed angles
+  const ikAngles = solveIK(tip);        // [sp, sy, sr, ef, wr, wp]
+  const baseAngles = [...ikAngles, grip]; // append grip → 7 elements
+
+  // Compressed arm: IK angles + drift (grip unchanged)
+  const compAngles = addDrift(baseAngles, u);
+  compAngles[6] = grip;
+
+  applyPose(BASE, baseAngles);
+  applyPose(COMP, compAngles);
+  syncBlock(u, tip);
+  updateTrail(BASE);
+  updateTrail(COMP);
+}
+
+let last=performance.now();
+function render(now){
+  requestAnimationFrame(render);
+  const dt=Math.min((now-last)/1000,0.05); last=now;
+
+  if(playing){
+    frameAcc+=dt*25*SPEEDS[spIdx];
+    while(frameAcc>=1){step=(step+1)%N;frameAcc-=1;}
+    applyStep(step);
+  }
+
+  renderer.render(scene,camera);
+}
+requestAnimationFrame(render);
+applyStep(0);
+
+// ── Controls ───────────────────────────────────────────────────────────────────
+document.getElementById('bp').addEventListener('click',()=>{
+  playing=!playing;
+  const btn=document.getElementById('bp');
+  btn.textContent=playing?'⏸ Pause':'▶ Play';
+  btn.classList.toggle('on',playing);
+});
+scr.addEventListener('input',()=>{
+  playing=false;
+  document.getElementById('bp').textContent='▶ Play';
+  document.getElementById('bp').classList.remove('on');
+  applyStep(parseInt(scr.value));
+});
+document.getElementById('bspd').addEventListener('click',()=>{
+  spIdx=(spIdx+1)%SPEEDS.length;
+  document.getElementById('bspd').textContent=SPEEDS[spIdx]+'× speed';
+});
+document.getElementById('brst').addEventListener('click',()=>{
+  sph={r:2.8,theta:-0.72,phi:1.06};
+  tgt.set(0.20,1.00,0.24); camUpdate();
+});
+</script>
+</body>
+</html>

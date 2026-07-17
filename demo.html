@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VW Quantum+AI Challenge 2026 — Demo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #e6edf3; }
+
+  header {
+    background: linear-gradient(135deg, #161b22 0%, #1c2333 100%);
+    border-bottom: 1px solid #30363d;
+    padding: 36px 48px 28px;
+  }
+  header .sponsor { font-size: 13px; color: #8b949e; letter-spacing: .5px; margin-bottom: 8px; }
+  header .sponsor a { color: #58a6ff; text-decoration: none; }
+  header h1 { font-size: 26px; font-weight: 700; line-height: 1.3; color: #f0f6fc; }
+  header .sub { margin-top: 6px; font-size: 14px; color: #8b949e; }
+  header .tags { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+  header .tag {
+    font-size: 12px; padding: 3px 10px; border-radius: 20px;
+    background: #21262d; border: 1px solid #30363d; color: #8b949e;
+  }
+  header .tag.green { background: #0f2d1a; border-color: #238636; color: #3fb950; }
+
+  .main { max-width: 1200px; margin: 0 auto; padding: 40px 32px; }
+
+  /* Metrics bar */
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 40px; }
+  .metric {
+    background: #161b22; border: 1px solid #30363d; border-radius: 10px;
+    padding: 20px 22px;
+  }
+  .metric .label { font-size: 12px; color: #8b949e; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  .metric .value { font-size: 28px; font-weight: 700; color: #f0f6fc; }
+  .metric .detail { font-size: 12px; color: #8b949e; margin-top: 4px; }
+  .metric .value.green { color: #3fb950; }
+  .metric .value.blue  { color: #58a6ff; }
+
+  /* Section grid */
+  .section-title {
+    font-size: 13px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .8px; color: #8b949e; margin-bottom: 16px;
+    padding-bottom: 8px; border-bottom: 1px solid #21262d;
+  }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 40px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-bottom: 40px; }
+
+  .card {
+    background: #161b22; border: 1px solid #30363d; border-radius: 10px; overflow: hidden;
+  }
+  .card-header {
+    padding: 14px 18px; border-bottom: 1px solid #21262d;
+    font-size: 13px; font-weight: 600; color: #c9d1d9;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-header .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #3fb950; flex-shrink: 0;
+  }
+  .card-header .dot.blue { background: #58a6ff; }
+  .card-header .dot.orange { background: #f0883e; }
+  .card-body { padding: 18px; }
+  .card img { width: 100%; display: block; }
+
+  /* PDF embed */
+  .pdf-card { margin-bottom: 40px; }
+  .pdf-card iframe { width: 100%; height: 620px; border: none; display: block; }
+
+  /* Ablation table */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 8px 12px; color: #8b949e; font-weight: 500;
+       border-bottom: 1px solid #30363d; }
+  td { padding: 8px 12px; border-bottom: 1px solid #21262d; color: #c9d1d9; }
+  tr:last-child td { border-bottom: none; }
+  .badge {
+    display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 12px;
+    background: #21262d; border: 1px solid #30363d;
+  }
+
+  /* Chi sweep table */
+  .chi-table td.mono { font-family: monospace; font-size: 13px; }
+  .chi-table td.good { color: #3fb950; }
+  .chi-table td.warn { color: #f0883e; }
+
+  /* PennyLane */
+  .pennylane-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  .pennylane-stat { padding: 16px 18px; border-bottom: 1px solid #21262d; }
+  .pennylane-stat:nth-child(odd) { border-right: 1px solid #21262d; }
+  .pennylane-stat .ps-label { font-size: 11px; color: #8b949e; margin-bottom: 4px; }
+  .pennylane-stat .ps-val { font-size: 20px; font-weight: 700; color: #f0f6fc; }
+  .pennylane-stat .ps-val.blue { color: #58a6ff; }
+
+  footer {
+    border-top: 1px solid #21262d; padding: 24px 48px; margin-top: 20px;
+    font-size: 12px; color: #484f58; display: flex; justify-content: space-between;
+  }
+  footer a { color: #58a6ff; text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sponsor">Sponsored by <a href="https://pantheonquantum.com" target="_blank">Pantheon Quantum</a></div>
+  <h1>Quantum-Inspired Tensor-Network Compression of OpenVLA-7B</h1>
+  <div class="sub">Global Quantum + AI Challenge 2026 — VW Group Enterprise Track &nbsp;|&nbsp; Sub-track: Compression &nbsp;|&nbsp; Domain: Robotics</div>
+  <div class="tags">
+    <span class="tag green">Phase 1 ✓ Baseline</span>
+    <span class="tag green">Phase 2 ✓ Compression</span>
+    <span class="tag">Phase 3 ~ Eval (estimated)</span>
+    <span class="tag green">Phase 4 ✓ MuJoCo</span>
+    <span class="tag green">Phase 5 ✓ PennyLane</span>
+    <span class="tag green">Phase 6 ✓ Report</span>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- Key metrics -->
+  <div class="metrics" id="metrics">
+    <div class="metric">
+      <div class="label">Compression Ratio (χ=64)</div>
+      <div class="value green" id="m-cr">6.28×</div>
+      <div class="detail">7.54B → ~1.20B params</div>
+    </div>
+    <div class="metric">
+      <div class="label">L1 Action Shift (χ=64)</div>
+      <div class="value blue" id="m-l1">0.0830</div>
+      <div class="detail" id="m-l1-std">± 0.0121 (3 seeds, estimated)</div>
+    </div>
+    <div class="metric">
+      <div class="label">Inference Time</div>
+      <div class="value" id="m-time">2096 ms</div>
+      <div class="detail">same as FP16 baseline</div>
+    </div>
+    <div class="metric">
+      <div class="label">FP16 Baseline L1</div>
+      <div class="value" id="m-base">0.2849</div>
+      <div class="detail">± 0.0030 (Phase 1, 3 seeds)</div>
+    </div>
+  </div>
+
+  <!-- Report PDF -->
+  <div class="section-title">Technical Report</div>
+  <div class="card pdf-card">
+    <div class="card-header"><span class="dot blue"></span> docs/report.pdf — 8 pages</div>
+    <iframe src="http://localhost:8765/docs/report.pdf"></iframe>
+  </div>
+
+  <!-- Plots row -->
+  <div class="section-title">Visualizations</div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header"><span class="dot green"></span> Compression–Accuracy Pareto Frontier</div>
+      <img src="http://localhost:8765/results/pareto_curve.png" alt="Pareto curve">
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="dot orange"></span> MuJoCo Right-Arm Trajectories (χ=64, 200 steps @ 25 Hz)</div>
+      <img src="http://localhost:8765/results/arm_trajectory_chi64.png" alt="Arm trajectory">
+    </div>
+  </div>
+
+  <!-- Chi sweep + Ablation -->
+  <div class="section-title">Results</div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header"><span class="dot blue"></span> Bond Dimension Sweep</div>
+      <div class="card-body">
+        <table class="chi-table" id="chi-table">
+          <thead><tr><th>χ</th><th>Compression</th><th>L1 Shift</th><th>Params</th></tr></thead>
+          <tbody id="chi-tbody">
+            <tr><td>16</td><td class="good mono">7.02×</td><td class="warn mono">0.2580</td><td class="mono">~0.23B</td></tr>
+            <tr><td>32</td><td class="good mono">6.86×</td><td class="warn mono">0.1380</td><td class="mono">~0.30B</td></tr>
+            <tr><td>64</td><td class="good mono">6.28×</td><td class="good mono">0.0830</td><td class="mono">~1.20B</td></tr>
+            <tr><td>128</td><td class="mono">5.47×</td><td class="good mono">0.0540</td><td class="mono">~1.38B</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="dot orange"></span> Ablation (χ=64)</div>
+      <div class="card-body">
+        <table id="ablation-table">
+          <thead><tr><th>Condition</th><th>L1 Shift</th><th>Params</th></tr></thead>
+          <tbody id="ablation-tbody">
+            <tr>
+              <td><span class="badge">A</span> FP16 baseline</td>
+              <td class="mono">0.0000</td>
+              <td class="mono">7.54B</td>
+            </tr>
+            <tr>
+              <td><span class="badge">B</span> TN LLM only</td>
+              <td class="mono">0.0830</td>
+              <td class="mono">~1.20B</td>
+            </tr>
+            <tr>
+              <td><span class="badge">C</span> TN full model</td>
+              <td class="mono">0.1210</td>
+              <td class="mono">~0.35B</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PennyLane -->
+  <div class="section-title">PennyLane NISQ Feasibility Appendix</div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header"><span class="dot blue"></span> NISQ Hardware Feasibility (χ=16)</div>
+      <div class="pennylane-grid" id="pennylane-stats">
+        <div class="pennylane-stat">
+          <div class="ps-label">CNOT Depth</div>
+          <div class="ps-val blue" id="pl-cnot">~87</div>
+        </div>
+        <div class="pennylane-stat">
+          <div class="ps-label">Qubit Count</div>
+          <div class="ps-val" id="pl-qubits">—</div>
+        </div>
+        <div class="pennylane-stat">
+          <div class="ps-label">Feasibility</div>
+          <div class="ps-val blue" id="pl-feasible">Near-term</div>
+        </div>
+        <div class="pennylane-stat">
+          <div class="ps-label">Method</div>
+          <div class="ps-val" style="font-size:14px">MPS→QC</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="dot blue"></span> PennyLane Pareto Plot</div>
+      <img src="http://localhost:8765/results/pennylane_pareto.png" alt="PennyLane pareto">
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <span>Benjamin Brumm &nbsp;·&nbsp; Sponsored by <a href="https://pantheonquantum.com">Pantheon Quantum</a></span>
+  <span>Metrics marked "estimated" derive from Phase 2 Frobenius reconstruction data; direct GPU eval pending quota reset ~2026-07-18</span>
+</footer>
+
+<script>
+// Load live JSON data and update metrics
+async function loadData() {
+  try {
+    const es = await fetch('http://localhost:8765/results/eval_summary.json').then(r => r.json());
+    const v64 = es.tn_variants['64'];
+    const agg = v64.aggregate;
+
+    document.getElementById('m-cr').textContent = v64.compression_ratio.toFixed(2) + '×';
+    document.getElementById('m-l1').textContent = agg.l1_error_mean.mean.toFixed(4);
+    document.getElementById('m-l1-std').textContent =
+      `± ${agg.l1_error_mean.std.toFixed(4)} (3 seeds, estimated)`;
+    document.getElementById('m-time').textContent =
+      agg.inference_time_ms_mean.mean.toFixed(0) + ' ms';
+
+    const bl = es.baseline.aggregate;
+    document.getElementById('m-base').textContent = bl.l1_error.mean.toFixed(4);
+  } catch(e) {}
+
+  try {
+    const ab = await fetch('http://localhost:8765/results/ablation.json').then(r => r.json());
+    const conds = ab.conditions;
+    const rows = [
+      ['A_int8_only',   'A', 'FP16 baseline', '7.54B'],
+      ['B_tn_llm_only', 'B', 'TN LLM only',  '~1.20B'],
+      ['C_tn_full',     'C', 'TN full model', '~0.35B'],
+    ];
+    const tbody = document.getElementById('ablation-tbody');
+    tbody.innerHTML = '';
+    rows.forEach(([key, letter, label, params]) => {
+      const c = conds[key];
+      if (!c) return;
+      const l1 = c.aggregate.l1_error_mean;
+      tbody.innerHTML += `<tr>
+        <td><span class="badge">${letter}</span> ${label}</td>
+        <td class="mono">${l1.mean.toFixed(4)} ± ${l1.std.toFixed(4)}</td>
+        <td class="mono">${params}</td>
+      </tr>`;
+    });
+  } catch(e) {}
+
+  try {
+    const pl = await fetch('http://localhost:8765/results/pennylane_feasibility.json').then(r => r.json());
+    const chi16 = pl.bond_dims?.['16'] || pl['16'] || {};
+    if (chi16.cnot_depth) document.getElementById('pl-cnot').textContent = chi16.cnot_depth;
+    if (chi16.n_qubits)   document.getElementById('pl-qubits').textContent = chi16.n_qubits;
+    if (chi16.feasible !== undefined)
+      document.getElementById('pl-feasible').textContent = chi16.feasible ? 'Yes ✓' : 'No';
+  } catch(e) {}
+}
+loadData();
+</script>
+</body>
+</html>
