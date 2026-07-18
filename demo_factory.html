@@ -96,6 +96,7 @@ body { background: #06080e; overflow: hidden; font-family: 'Segoe UI', system-ui
     <div class="topbar-text">
       <div class="title">VW ID.4 Battery Module Assembly — Digital Twin</div>
       <div class="sub">Figure 03 · χ=64 OpenVLA-7B · Dual-Arm Parallel Assembly · VW Group Production</div>
+      <div style="font-size:10px;color:#484f58;letter-spacing:.3px;margin-top:2px;">Schematic kinematic visualization — not a physics simulation · drift arrays are synthetic</div>
     </div>
     <span class="pill">Phase 4 ✓ MuJoCo</span>
     <span class="pill pill-blue">Figure 03 · Oct 2025</span>
@@ -118,15 +119,18 @@ body { background: #06080e; overflow: hidden; font-family: 'Segoe UI', system-ui
     <div class="mt">Factory Metrics</div>
     <div class="row"><span class="lbl">Throughput</span><span class="val g" id="m-tp">~3.2 packs/hr</span></div>
     <div class="row"><span class="lbl">Cycle time</span><span class="val" id="m-ct">0.0 s</span></div>
-    <div class="row"><span class="lbl">χ=64 error</span><span class="val b">L1 = 0.0830</span></div>
+    <div class="row"><span class="lbl">χ=64 L1 †</span><span class="val b">0.0830 (est.)</span></div>
     <div class="row"><span class="lbl">Step</span><span class="val b" id="m-step">0 / 199</span></div>
     <div class="row"><span class="lbl">Phase</span><span class="val" id="m-phase">Standby</span></div>
+    <div style="font-size:9px;color:#484f58;margin-top:5px;">† Phase 3 metric estimated from Phase 2 Frobenius data</div>
   </div>
 
   <div id="progbar"><div id="progfill"></div></div>
 
   <div id="controls">
     <button id="btnPlay">&#9654; Play</button>
+    <button id="btnStepBack" title="Step back one frame">‹</button>
+    <button id="btnStepFwd" title="Step forward one frame">›</button>
     <button id="btnSpeed">1×</button>
     <span id="phaseLabel">Standby</span>
     <input type="range" id="scrubber" min="0" max="199" value="0">
@@ -878,6 +882,14 @@ btnSpeed.addEventListener('click', () => {
 btnReset.addEventListener('click', () => {
   camera.position.copy(CAM0_P); orbit.target.copy(CAM0_T); orbit.update();
 });
+
+function pauseAndStep(delta) {
+  playing = false; btnPlay.textContent = '▶ Play';
+  step = ((step + delta) % N_STEPS + N_STEPS) % N_STEPS;
+  scrubber.value = step;
+}
+document.getElementById('btnStepBack').addEventListener('click', () => pauseAndStep(-1));
+document.getElementById('btnStepFwd').addEventListener('click',  () => pauseAndStep(1));
 
 scrubber.addEventListener('input', () => {
   playing = false; btnPlay.textContent = '▶ Play';
