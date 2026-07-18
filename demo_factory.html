@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Factory Digital Twin — TV Assembly · χ=64 OpenVLA-7B</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #060810; overflow: hidden; font-family: 'Segoe UI', system-ui, sans-serif; color: #e6edf3; }
+#c { display: block; width: 100vw; height: 100vh; }
+
+/* ── HUD overlay ─────────────────────────────────────────────── */
+#hud {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none;
+}
+
+/* top bar */
+#topbar {
+  position: absolute; top: 0; left: 0; right: 0;
+  background: linear-gradient(180deg, rgba(6,8,16,.92) 80%, transparent);
+  padding: 14px 20px 18px;
+  display: flex; align-items: center; gap: 14px;
+}
+#topbar .title { font-size: 15px; font-weight: 700; color: #f0f6fc; }
+#topbar .subtitle { font-size: 12px; color: #8b949e; margin-top: 2px; }
+.pill {
+  display: inline-block; font-size: 11px; padding: 3px 10px; border-radius: 20px;
+  background: #0f2d1a; border: 1px solid #238636; color: #3fb950;
+  white-space: nowrap;
+}
+
+/* legend */
+#legend {
+  position: absolute; top: 72px; right: 16px;
+  background: rgba(12,14,20,.82); border: 1px solid #21262d; border-radius: 8px;
+  padding: 10px 14px; font-size: 12px;
+}
+#legend .row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+#legend .row:last-child { margin-bottom: 0; }
+.dot-b { width: 10px; height: 10px; border-radius: 50%; background: #3a7fd5; flex-shrink: 0; }
+.dot-o { width: 10px; height: 10px; border-radius: 50%; background: #e07b39; flex-shrink: 0; }
+
+/* assembly checklist */
+#checklist {
+  position: absolute; bottom: 100px; left: 16px;
+  background: rgba(12,14,20,.82); border: 1px solid #21262d; border-radius: 8px;
+  padding: 12px 16px; min-width: 180px;
+}
+#checklist .cl-title { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: #8b949e; margin-bottom: 8px; }
+#checklist .cl-item { font-size: 13px; margin-bottom: 5px; color: #c9d1d9; transition: color .3s; }
+#checklist .cl-item.done { color: #3fb950; }
+
+/* metrics */
+#metrics {
+  position: absolute; bottom: 100px; right: 16px;
+  background: rgba(12,14,20,.82); border: 1px solid #21262d; border-radius: 8px;
+  padding: 12px 16px; min-width: 180px;
+}
+#metrics .mt { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: #8b949e; margin-bottom: 8px; }
+#metrics .row { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 4px; font-size: 12px; }
+#metrics .row .lbl { color: #8b949e; }
+#metrics .row .val { color: #f0f6fc; font-weight: 600; }
+#metrics .row .val.green { color: #3fb950; }
+#metrics .row .val.blue  { color: #58a6ff; }
+
+/* progress bar */
+#progbar {
+  position: absolute; left: 16px; right: 16px; bottom: 68px; height: 6px;
+  background: #21262d; border-radius: 3px; overflow: hidden;
+}
+#progfill { height: 100%; width: 0%; border-radius: 3px; transition: background .5s; background: #238636; }
+
+/* controls */
+#controls {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  pointer-events: all;
+  background: linear-gradient(0deg, rgba(6,8,16,.95) 80%, transparent);
+  padding: 8px 16px 12px;
+  display: flex; align-items: center; gap: 10px;
+}
+#controls button {
+  background: #21262d; border: 1px solid #30363d; color: #e6edf3;
+  border-radius: 6px; padding: 5px 12px; cursor: pointer; font-size: 12px;
+  transition: background .15s;
+}
+#controls button:hover { background: #30363d; }
+#scrubber { flex: 1; accent-color: #3a7fd5; cursor: pointer; }
+#stepLabel { font-size: 12px; color: #8b949e; min-width: 60px; text-align: right; }
+#phaseLabel { font-size: 12px; color: #58a6ff; min-width: 140px; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud">
+  <div id="topbar">
+    <div>
+      <div class="title">Factory Digital Twin — TV Assembly</div>
+      <div class="subtitle">χ=64 OpenVLA-7B · Dual-Arm Parallel Assembly · VW Quantum+AI Challenge 2026</div>
+    </div>
+    <span class="pill">Phase 4 ✓ MuJoCo</span>
+  </div>
+
+  <div id="legend">
+    <div class="row"><span class="dot-b"></span><span>Arm FP16 baseline</span></div>
+    <div class="row"><span class="dot-o"></span><span>Arm χ=64 compressed</span></div>
+  </div>
+
+  <div id="checklist">
+    <div class="cl-title">Assembly Progress</div>
+    <div class="cl-item" id="cl-bp">☐ Back panel</div>
+    <div class="cl-item" id="cl-dp">☐ Display</div>
+    <div class="cl-item" id="cl-cb">☐ Circuit board</div>
+    <div class="cl-item" id="cl-bz">☐ Front bezel</div>
+  </div>
+
+  <div id="metrics">
+    <div class="mt">Factory Metrics</div>
+    <div class="row"><span class="lbl">Throughput</span><span class="val green" id="m-tp">—</span></div>
+    <div class="row"><span class="lbl">Cycle time</span><span class="val" id="m-ct">—</span></div>
+    <div class="row"><span class="lbl">Step</span><span class="val blue" id="m-step">0 / 199</span></div>
+    <div class="row"><span class="lbl">Phase</span><span class="val" id="m-phase">Idle</span></div>
+  </div>
+
+  <div id="progbar"><div id="progfill"></div></div>
+
+  <div id="controls">
+    <button id="btnPlay">&#9654; Play</button>
+    <button id="btnSpeed">1×</button>
+    <span id="phaseLabel">Idle</span>
+    <input type="range" id="scrubber" min="0" max="199" value="0">
+    <span id="stepLabel">0 / 199</span>
+    <button id="btnReset">Reset View</button>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.module.js",
+    "three/examples/jsm/controls/OrbitControls": "https://cdn.jsdelivr.net/npm/three@0.134.0/examples/jsm/controls/OrbitControls.js"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+const TOTAL_STEPS = 200;
+const UA_LEN = 0.30;  // upper arm length
+const FA_LEN = 0.26;  // forearm length
+const HA_LEN = 0.08;  // hand length
+
+const TABLE_SURF = 0.88;     // assembly table top surface Y
+const SHELF_L_X  = -0.44;    // left shelf X
+const SHELF_R_X  =  0.44;    // right shelf X
+const SHELF_Z    =  0.28;    // shelf depth Z
+const SHELF_Y    =  0.88;    // shelf surface Y
+const ASSEM_X    =  0.00;    // assembly table centre X
+const ASSEM_Z    =  0.38;    // assembly table centre Z
+const WRIST_FLOOR = TABLE_SURF + 0.10;  // minimum wrist Y
+
+// Shoulder positions (after 0.25m pedestal boost)
+const SH_A = new THREE.Vector3(-0.20, 1.38, 0);
+const SH_B = new THREE.Vector3( 0.20, 1.38, 0);
+
+// ── Renderer ─────────────────────────────────────────────────────────────────
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x060810);
+scene.fog = new THREE.FogExp2(0x060810, 0.28);
+
+// ── Camera ────────────────────────────────────────────────────────────────────
+const camera = new THREE.PerspectiveCamera(42, innerWidth/innerHeight, 0.05, 30);
+camera.position.set(1.6, 1.7, 2.0);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 1.0, 0.2);
+controls.minDistance = 0.5;
+controls.maxDistance = 6;
+controls.update();
+
+const CAM_DEF_POS = camera.position.clone();
+const CAM_DEF_TGT = controls.target.clone();
+
+// ── Lights ───────────────────────────────────────────────────────────────────
+const ambient = new THREE.AmbientLight(0x8090b0, 0.35);
+scene.add(ambient);
+
+const sunLight = new THREE.DirectionalLight(0xffffff, 0.6);
+sunLight.position.set(2, 4, 2);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.set(1024, 1024);
+sunLight.shadow.camera.near = 0.1;
+sunLight.shadow.camera.far = 10;
+sunLight.shadow.camera.left = -2; sunLight.shadow.camera.right = 2;
+sunLight.shadow.camera.top = 3;   sunLight.shadow.camera.bottom = -1;
+scene.add(sunLight);
+
+function addSpot(x, y, z, color, intensity) {
+  const s = new THREE.SpotLight(color, intensity, 4, Math.PI/5, 0.4);
+  s.position.set(x, y, z);
+  s.castShadow = false;
+  scene.add(s);
+  scene.add(s.target);
+  s.target.position.set(x*0.3, 0.9, z*0.5);
+}
+addSpot(-0.6, 2.8, 0.3, 0xa0b8ff, 2.2);
+addSpot( 0.6, 2.8, 0.3, 0xa0b8ff, 2.2);
+addSpot( 0.0, 2.8, 0.5, 0xffeebb, 1.8);
+
+const rimLight = new THREE.DirectionalLight(0x3a4fff, 0.4);
+rimLight.position.set(-2, 1.5, -1);
+scene.add(rimLight);
+
+// ── Materials ─────────────────────────────────────────────────────────────────
+function mk(col, rough, metal, emCol=null, emInt=0) {
+  const p = { color: col, roughness: rough, metalness: metal };
+  if (emCol) { p.emissive = emCol; p.emissiveIntensity = emInt; }
+  return new THREE.MeshStandardMaterial(p);
+}
+
+const MAT = {
+  panel:  mk(0xc4cad4, 0.52, 0.14),
+  joint:  mk(0x141418, 0.24, 0.82),
+  dark:   mk(0x1c1e26, 0.40, 0.75),
+  head:   mk(0x0d0f14, 0.06, 0.18),
+  visor:  mk(0x060810, 0.04, 0.12, 0x1a4fff, 1.6),
+  accent: mk(0x1a4fff, 0.20, 0.30, 0x1a4fff, 3.5),
+  foot:   mk(0xd2d8e2, 0.62, 0.10),
+  arm_b:  mk(0x3a7fd5, 0.28, 0.75),
+  arm_c:  mk(0xe07b39, 0.28, 0.75),
+  jnt_b:  mk(0x1a4f8a, 0.25, 0.85),
+  jnt_c:  mk(0x8b3a10, 0.25, 0.85),
+  floor:  mk(0x0c0e12, 0.88, 0.04),
+  table:  mk(0x1a1e28, 0.62, 0.22),
+  shelf:  mk(0x1e2030, 0.70, 0.18),
+  pedestal: mk(0x0e1018, 0.30, 0.85),
+  gantry: mk(0x1a2040, 0.40, 0.80),
+  safety: mk(0xf0b020, 0.80, 0.00),
+  // TV parts
+  tv_back:    mk(0x2a2a2e, 0.72, 0.20),
+  tv_display: mk(0x06080e, 0.10, 0.10, 0x1a4fff, 0.8),
+  tv_board:   mk(0x1a5c1a, 0.60, 0.10),
+  tv_bezel:   mk(0x111114, 0.40, 0.60),
+};
+
+// ── Floor ─────────────────────────────────────────────────────────────────────
+const floorGeo = new THREE.PlaneGeometry(8, 8);
+const floor = new THREE.Mesh(floorGeo, MAT.floor);
+floor.rotation.x = -Math.PI/2;
+floor.receiveShadow = true;
+scene.add(floor);
+
+// Grid lines
+const grid = new THREE.GridHelper(6, 30, 0x1a2040, 0x0f1525);
+grid.position.y = 0.001;
+scene.add(grid);
+
+// Safety stripes
+function addStripe(x, z, w, d) {
+  const sg = new THREE.BoxGeometry(w, 0.002, d);
+  const s = new THREE.Mesh(sg, MAT.safety);
+  s.position.set(x, 0.001, z);
+  scene.add(s);
+}
+// Perimeter stripes around cell
+addStripe( 0,    0.70,  1.60, 0.04);
+addStripe( 0,   -0.70,  1.60, 0.04);
+addStripe( 0.80, 0,    0.04,  1.40);
+addStripe(-0.80, 0,    0.04,  1.40);
+// Corner squares
+for (const [sx,sz] of [[-0.78, 0.68],[0.78,0.68],[-0.78,-0.68],[0.78,-0.68]]) {
+  addStripe(sx, sz, 0.08, 0.04);
+  addStripe(sx, sz, 0.04, 0.08);
+}
+
+// ── Assembly Table ────────────────────────────────────────────────────────────
+function addBox(geo, mat, x, y, z, rx=0, ry=0, rz=0, shadow=true) {
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(x, y, z);
+  m.rotation.set(rx, ry, rz);
+  if (shadow) { m.castShadow = true; m.receiveShadow = true; }
+  scene.add(m);
+  return m;
+}
+
+// Table top
+addBox(new THREE.BoxGeometry(0.70, 0.04, 0.60), MAT.table, ASSEM_X, TABLE_SURF-0.02, ASSEM_Z);
+// Table legs
+for (const [lx,lz] of [[-0.30,0.12],[0.30,0.12],[-0.30,0.64],[0.30,0.64]]) {
+  addBox(new THREE.BoxGeometry(0.04, TABLE_SURF-0.04, 0.04), MAT.dark, lx, (TABLE_SURF-0.04)/2, lz);
+}
+// Table shelf (lower crossbar)
+addBox(new THREE.BoxGeometry(0.68, 0.02, 0.56), MAT.dark, ASSEM_X, 0.42, ASSEM_Z);
+
+// ── Component Shelves ─────────────────────────────────────────────────────────
+function addShelf(x, z) {
+  // Shelf surface
+  addBox(new THREE.BoxGeometry(0.28, 0.025, 0.24), MAT.shelf, x, SHELF_Y-0.012, z);
+  // Uprights
+  for (const dx of [-0.11, 0.11]) {
+    addBox(new THREE.BoxGeometry(0.025, SHELF_Y, 0.025), MAT.dark, x+dx, SHELF_Y/2, z-0.08);
+    addBox(new THREE.BoxGeometry(0.025, SHELF_Y, 0.025), MAT.dark, x+dx, SHELF_Y/2, z+0.08);
+  }
+  // Back bar
+  addBox(new THREE.BoxGeometry(0.025, 0.20, 0.025), MAT.dark, x, SHELF_Y-0.10, z-0.10);
+}
+addShelf(SHELF_L_X, SHELF_Z);
+addShelf(SHELF_R_X, SHELF_Z);
+
+// ── Pedestals ─────────────────────────────────────────────────────────────────
+function addPedestal(x) {
+  addBox(new THREE.BoxGeometry(0.16, 0.25, 0.16), MAT.pedestal, x, 0.125, 0);
+  // Accent ring at top
+  const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.012, 16, 1, true), MAT.accent);
+  ring.position.set(x, 0.25, 0);
+  ring.castShadow = false;
+  scene.add(ring);
+}
+addPedestal(-0.28);
+addPedestal( 0.28);
+
+// ── Overhead Gantry ───────────────────────────────────────────────────────────
+// Horizontal crossbeam
+addBox(new THREE.BoxGeometry(1.20, 0.04, 0.04), MAT.gantry, 0, 2.60, 0.10);
+// Vertical uprights
+for (const gx of [-0.60, 0.60]) {
+  addBox(new THREE.BoxGeometry(0.04, 2.60, 0.04), MAT.gantry, gx, 1.30, 0.10);
+}
+// Side rails
+addBox(new THREE.BoxGeometry(0.04, 0.04, 0.70), MAT.gantry, -0.60, 2.60, 0.40);
+addBox(new THREE.BoxGeometry(0.04, 0.04, 0.70), MAT.gantry,  0.60, 2.60, 0.40);
+// Lighting bar
+const lbar = new THREE.Mesh(new THREE.BoxGeometry(1.10, 0.02, 0.06), mk(0xffeebb, 0.8, 0.0, 0xffeebb, 1.5));
+lbar.position.set(0, 2.58, 0.10);
+scene.add(lbar);
+
+// ── Robot Body Builder ────────────────────────────────────────────────────────
+function buildBody(xOff) {
+  const root = new THREE.Group();
+  root.position.set(xOff, 0.25, 0);  // on pedestal
+  scene.add(root);
+
+  // Feet
+  for (const fx of [-0.06, 0.06]) {
+    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.04, 0.14), MAT.foot);
+    foot.position.set(fx, 0.02, 0);
+    foot.castShadow = true;
+    root.add(foot);
+  }
+  // Shins
+  for (const fx of [-0.06, 0.06]) {
+    const shin = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.28, 0.08), MAT.panel);
+    shin.position.set(fx, 0.19, 0);
+    shin.castShadow = true;
+    root.add(shin);
+  }
+  // Knees
+  for (const fx of [-0.06, 0.06]) {
+    const kn = new THREE.Mesh(new THREE.SphereGeometry(0.038, 10, 8), MAT.joint);
+    kn.position.set(fx, 0.34, 0);
+    root.add(kn);
+  }
+  // Thighs
+  for (const fx of [-0.06, 0.06]) {
+    const th = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.24, 0.08), MAT.panel);
+    th.position.set(fx, 0.49, 0);
+    th.castShadow = true;
+    root.add(th);
+  }
+  // Hip joint
+  const hip = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.06, 0.10), MAT.joint);
+  hip.position.set(0, 0.62, 0);
+  root.add(hip);
+  // Pelvis
+  const pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.10, 0.12), MAT.dark);
+  pelvis.position.set(0, 0.70, 0);
+  root.add(pelvis);
+  // Torso
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.32, 0.14), MAT.panel);
+  torso.position.set(0, 0.92, 0);
+  torso.castShadow = true;
+  root.add(torso);
+  // Chest accent
+  const chest = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 0.02), MAT.dark);
+  chest.position.set(0, 0.92, 0.08);
+  root.add(chest);
+  const ledStrip = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.02, 0.015), MAT.accent);
+  ledStrip.position.set(0, 0.95, 0.088);
+  root.add(ledStrip);
+  // Neck
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.042, 0.08, 10), MAT.joint);
+  neck.position.set(0, 1.12, 0);
+  root.add(neck);
+  // Head
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.18, 0.16), MAT.head);
+  head.position.set(0, 1.24, 0);
+  head.castShadow = true;
+  root.add(head);
+  // Visor
+  const visor = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.05, 0.01), MAT.visor);
+  visor.position.set(0, 1.25, 0.082);
+  root.add(visor);
+  // Shoulder pads (static left arm side)
+  const shPad = new THREE.Mesh(new THREE.SphereGeometry(0.050, 10, 8), MAT.panel);
+  const shPadSign = xOff < 0 ? 1 : -1;
+  shPad.position.set(shPadSign * 0.14, 1.08, 0);
+  root.add(shPad);
+  // Static left/right arm (opposite side from animated arm)
+  const stUA = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.22, 0.065), MAT.panel);
+  stUA.position.set(shPadSign * 0.20, 0.96, 0);
+  stUA.castShadow = true;
+  root.add(stUA);
+  const stFA = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.18, 0.055), MAT.panel);
+  stFA.position.set(shPadSign * 0.22, 0.74, 0);
+  stFA.castShadow = true;
+  root.add(stFA);
+
+  return root;
+}
+
+buildBody(-0.28);
+buildBody( 0.28);
+
+// ── Arm Builder ───────────────────────────────────────────────────────────────
+function buildArm(armMat, jntMat, bodyRoot) {
+  const g = new THREE.Group();
+  scene.add(g);
+
+  // Shoulder joint
+  const j_sh = new THREE.Group();
+  g.add(j_sh);
+
+  // Upper arm
+  const ua = new THREE.Mesh(new THREE.BoxGeometry(0.058, UA_LEN-0.02, 0.068), armMat);
+  ua.position.set(0, -(UA_LEN-0.02)/2, 0);
+  ua.castShadow = true;
+  j_sh.add(ua);
+
+  const shBall = new THREE.Mesh(new THREE.SphereGeometry(0.038, 10, 8), jntMat);
+  j_sh.add(shBall);
+
+  // Elbow
+  const j_el = new THREE.Group();
+  j_el.position.set(0, -UA_LEN, 0);
+  j_sh.add(j_el);
+
+  const elBall = new THREE.Mesh(new THREE.SphereGeometry(0.030, 10, 8), jntMat);
+  j_el.add(elBall);
+
+  // Forearm
+  const fa = new THREE.Mesh(new THREE.BoxGeometry(0.048, FA_LEN-0.01, 0.056), armMat);
+  fa.position.set(0, -(FA_LEN-0.01)/2, 0);
+  fa.castShadow = true;
+  j_el.add(fa);
+
+  // Wrist
+  const j_wr = new THREE.Group();
+  j_wr.position.set(0, -FA_LEN, 0);
+  j_el.add(j_wr);
+
+  const wrBall = new THREE.Mesh(new THREE.SphereGeometry(0.024, 10, 8), jntMat);
+  j_wr.add(wrBall);
+
+  // Palm
+  const palm = new THREE.Mesh(new THREE.BoxGeometry(0.064, 0.050, 0.040), armMat);
+  palm.position.set(0, -0.025, 0);
+  j_wr.add(palm);
+
+  // Fingers
+  const f1 = new THREE.Group();
+  const f2 = new THREE.Group();
+  f1.position.set( 0.022, -0.060, 0);
+  f2.position.set(-0.022, -0.060, 0);
+  for (const f of [f1, f2]) {
+    const fing = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.040, 0.018), armMat);
+    fing.position.y = -0.020;
+    f.add(fing);
+    j_wr.add(f);
+  }
+
+  const j_tip = new THREE.Group();
+  j_tip.position.set(0, -(HA_LEN), 0);
+  j_wr.add(j_tip);
+
+  // Shoulder pad
+  const shPadAnim = new THREE.Mesh(new THREE.SphereGeometry(0.052, 10, 8), MAT.panel);
+  g.add(shPadAnim);
+
+  return { g, j_sh, j_el, j_wr, j_tip, f1, f2, shPadAnim };
+}
+
+// ── IK Solver (sagittal plane, forward elbow) ──────────────────────────────
+function solveIK(tip, shoulder) {
+  const W = tip.clone();
+  const dx = W.x - shoulder.x;
+  const dy = W.y - shoulder.y;
+  const dz = W.z - shoulder.z;
+  const sy = Math.atan2(dx, dz);
+
+  const A = dy;
+  const B = Math.sqrt(dx*dx + dz*dz);
+  const rawR = Math.sqrt(dx*dx + dy*dy + dz*dz);
+  const r = Math.max(Math.abs(UA_LEN-FA_LEN)+0.001, Math.min(UA_LEN+FA_LEN-0.001, rawR));
+
+  const cy = -(UA_LEN*UA_LEN + r*r - FA_LEN*FA_LEN) / (2*UA_LEN);
+  const phi = Math.atan2(B, A);
+  const cosArg = Math.max(-1, Math.min(1, cy / r));
+  const acosTerm = Math.acos(cosArg);
+
+  const sp1 = acosTerm - phi;
+  const sp2 = -acosTerm - phi;
+  const dz1 = B*Math.cos(sp1) + A*Math.sin(sp1);
+  const dz2 = B*Math.cos(sp2) + A*Math.sin(sp2);
+  const sp = (dz1 > dz2) ? sp1 : sp2;
+
+  const dPrimeY = A*Math.cos(sp) - B*Math.sin(sp);
+  const dPrimeZ = B*Math.cos(sp) + A*Math.sin(sp);
+  const cosEf = -(UA_LEN + dPrimeY) / FA_LEN;
+  const sinEf = +dPrimeZ / FA_LEN;
+  const ef = Math.atan2(sinEf, cosEf);
+
+  return [sp, sy, ef];
+}
+
+// ── Apply Pose ────────────────────────────────────────────────────────────────
+function applyPose(arm, sp, sy, ef, grip) {
+  arm.j_sh.rotation.set(-sp, sy, 0);
+  arm.j_el.rotation.set(-ef, 0, 0);
+  arm.j_wr.rotation.set(0, 0, 0);
+  const ap = Math.max(-0.15, grip) * 1.6;
+  arm.f1.position.x =  0.022 + ap*0.010;
+  arm.f2.position.x = -0.022 - ap*0.010;
+}
+
+// ── Place arm root at shoulder position ────────────────────────────────────
+function positionArm(arm, shoulder) {
+  arm.g.position.copy(shoulder);
+  arm.shPadAnim.position.copy(shoulder);
+}
+
+// ── Create arm pairs ──────────────────────────────────────────────────────────
+const ARM_A_BASE = buildArm(MAT.arm_b, MAT.jnt_b);  // left, blue FP16
+const ARM_A_COMP = buildArm(MAT.arm_c, MAT.jnt_c);  // left, orange χ=64
+const ARM_B_BASE = buildArm(MAT.arm_b, MAT.jnt_b);  // right, blue FP16
+const ARM_B_COMP = buildArm(MAT.arm_c, MAT.jnt_c);  // right, orange χ=64
+
+// Shoulder A: left robot, right side of body (active arm) — x offset +0.14 from body centre
+const SH_A_OFF = new THREE.Vector3(-0.28 + 0.14, 1.38, 0);
+// Shoulder B: right robot, left side of body (active arm) — x offset -0.14 from body centre
+const SH_B_OFF = new THREE.Vector3( 0.28 - 0.14, 1.38, 0);
+
+const Z_OFF = 0.04;  // z-separation between FP16 and compressed arms
+const SH_A_BASE = SH_A_OFF.clone(); SH_A_BASE.z -= Z_OFF;
+const SH_A_COMP = SH_A_OFF.clone(); SH_A_COMP.z += Z_OFF;
+const SH_B_BASE = SH_B_OFF.clone(); SH_B_BASE.z -= Z_OFF;
+const SH_B_COMP = SH_B_OFF.clone(); SH_B_COMP.z += Z_OFF;
+
+positionArm(ARM_A_BASE, SH_A_BASE);
+positionArm(ARM_A_COMP, SH_A_COMP);
+positionArm(ARM_B_BASE, SH_B_BASE);
+positionArm(ARM_B_COMP, SH_B_COMP);
+
+// ── TV Part Meshes ────────────────────────────────────────────────────────────
+const TV_W = 0.44, TV_H = 0.27, TV_D = 0.030;
+
+// Shelf positions
+const BP_SHELF = new THREE.Vector3(SHELF_L_X, SHELF_Y + TV_D/2 + 0.01, SHELF_Z);
+const CB_SHELF = new THREE.Vector3(SHELF_L_X, SHELF_Y + 0.01 + 0.006/2, SHELF_Z + 0.06);
+const DP_SHELF = new THREE.Vector3(SHELF_R_X, SHELF_Y + 0.008/2 + 0.01, SHELF_Z);
+const BZ_SHELF = new THREE.Vector3(SHELF_R_X, SHELF_Y + 0.01, SHELF_Z - 0.05);
+
+// Assembled positions
+const BP_ASSEM = new THREE.Vector3(ASSEM_X, TABLE_SURF + TV_D/2, ASSEM_Z);
+const DP_ASSEM = new THREE.Vector3(ASSEM_X, TABLE_SURF + TV_D + 0.008/2 + 0.002, ASSEM_Z);
+const CB_ASSEM = new THREE.Vector3(ASSEM_X + 0.10, TABLE_SURF + TV_D + 0.01, ASSEM_Z - 0.05);
+const BZ_ASSEM = new THREE.Vector3(ASSEM_X, TABLE_SURF + TV_D*2 + 0.008 + 0.006, ASSEM_Z);
+
+// Back panel
+const backPanel = new THREE.Mesh(new THREE.BoxGeometry(TV_W, TV_H, TV_D), MAT.tv_back);
+backPanel.castShadow = true; backPanel.receiveShadow = true;
+backPanel.position.copy(BP_SHELF);
+backPanel.rotation.x = -Math.PI/2;  // flat on shelf
+scene.add(backPanel);
+
+// Display
+const display = new THREE.Mesh(new THREE.BoxGeometry(TV_W-0.04, TV_H-0.03, 0.008), MAT.tv_display);
+display.castShadow = true;
+display.position.copy(DP_SHELF);
+display.rotation.x = -Math.PI/2;
+scene.add(display);
+
+// Circuit board
+const circuitBoard = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.10, 0.006), MAT.tv_board);
+circuitBoard.position.copy(CB_SHELF);
+circuitBoard.rotation.x = -Math.PI/2;
+scene.add(circuitBoard);
+
+// Bezel (frame from 4 slabs)
+const bezelGroup = new THREE.Group();
+bezelGroup.position.copy(BZ_SHELF);
+const bw = 0.025;
+const bezelParts = [
+  // top bar
+  new THREE.Mesh(new THREE.BoxGeometry(TV_W, bw, bw), MAT.tv_bezel),
+  // bottom bar
+  new THREE.Mesh(new THREE.BoxGeometry(TV_W, bw, bw), MAT.tv_bezel),
+  // left bar
+  new THREE.Mesh(new THREE.BoxGeometry(bw, TV_H - bw*2, bw), MAT.tv_bezel),
+  // right bar
+  new THREE.Mesh(new THREE.BoxGeometry(bw, TV_H - bw*2, bw), MAT.tv_bezel),
+];
+bezelParts[0].position.y =  (TV_H-bw)/2;
+bezelParts[1].position.y = -(TV_H-bw)/2;
+bezelParts[2].position.x = -(TV_W-bw)/2;
+bezelParts[3].position.x =  (TV_W-bw)/2;
+for (const bp of bezelParts) { bp.castShadow = true; bezelGroup.add(bp); }
+scene.add(bezelGroup);
+
+// Assembly state
+const tvParts = { backPanel, display, circuitBoard, bezelGroup };
+const partAssembled = { backPanel: false, display: false, circuitBoard: false, bezelGroup: false };
+
+// Track carry positions for parts during transport
+const carryA = { active: false, part: null, partName: '' };
+const carryB = { active: false, part: null, partName: '' };
+
+// ── Waypoints ─────────────────────────────────────────────────────────────────
+// Format: [u, tipX, tipY, tipZ, grip]
+// grip: 0.28=open, -0.12=closed
+
+// Arm A (left robot → left shelf → assembly table) — handles backPanel (u<0.60) and circuitBoard (u>=0.68)
+const WP_A = [
+  // Idle
+  [0.00, SH_A_OFF.x + 0.00, 1.00, 0.05, 0.28],
+  // Pick back panel: approach left shelf
+  [0.08, SHELF_L_X,     SHELF_Y + 0.25, SHELF_Z, 0.28],
+  [0.18, SHELF_L_X,     SHELF_Y + 0.08, SHELF_Z, 0.28],
+  [0.26, SHELF_L_X,     SHELF_Y + 0.02, SHELF_Z, 0.28],
+  [0.32, SHELF_L_X,     SHELF_Y + 0.02, SHELF_Z,-0.12],  // grip
+  [0.38, SHELF_L_X,     SHELF_Y + 0.28, SHELF_Z,-0.12],  // lift
+  // Carry to assembly table
+  [0.50, ASSEM_X,       SHELF_Y + 0.28, ASSEM_Z,-0.12],
+  [0.56, ASSEM_X,       TABLE_SURF + 0.12, ASSEM_Z,-0.12],
+  [0.60, ASSEM_X,       TABLE_SURF + 0.02, ASSEM_Z,-0.12],
+  [0.64, ASSEM_X,       TABLE_SURF + 0.02, ASSEM_Z, 0.28],  // release
+  [0.68, ASSEM_X,       TABLE_SURF + 0.22, ASSEM_Z, 0.28],  // retract up
+  // Pick circuit board
+  [0.74, SHELF_L_X,     SHELF_Y + 0.22, SHELF_Z + 0.06, 0.28],
+  [0.82, SHELF_L_X,     SHELF_Y + 0.04, SHELF_Z + 0.06, 0.28],
+  [0.86, SHELF_L_X,     SHELF_Y + 0.01, SHELF_Z + 0.06,-0.12],  // grip
+  [0.90, SHELF_L_X,     SHELF_Y + 0.24, SHELF_Z + 0.06,-0.12],  // lift
+  // Carry to assembly and release
+  [0.94, ASSEM_X+0.10,  TABLE_SURF + 0.24, ASSEM_Z-0.05,-0.12],
+  [0.96, ASSEM_X+0.10,  TABLE_SURF + 0.04, ASSEM_Z-0.05,-0.12],
+  [0.98, ASSEM_X+0.10,  TABLE_SURF + 0.04, ASSEM_Z-0.05, 0.28],  // release
+  // Return idle
+  [1.00, SH_A_OFF.x + 0.00, 1.00, 0.05, 0.28],
+];
+
+// Arm B (right robot → right shelf → assembly table) — handles display (u<0.60) and bezel (u>=0.68)
+const WP_B = [
+  // Idle
+  [0.00, SH_B_OFF.x + 0.00, 1.00, 0.05, 0.28],
+  // Pick display: approach right shelf
+  [0.10, SHELF_R_X,     SHELF_Y + 0.22, SHELF_Z, 0.28],
+  [0.20, SHELF_R_X,     SHELF_Y + 0.07, SHELF_Z, 0.28],
+  [0.27, SHELF_R_X,     SHELF_Y + 0.02, SHELF_Z, 0.28],
+  [0.33, SHELF_R_X,     SHELF_Y + 0.02, SHELF_Z,-0.12],  // grip
+  [0.40, SHELF_R_X,     SHELF_Y + 0.26, SHELF_Z,-0.12],  // lift
+  // Carry to assembly table
+  [0.52, ASSEM_X,       SHELF_Y + 0.26, ASSEM_Z,-0.12],
+  [0.57, ASSEM_X,       TABLE_SURF + 0.14, ASSEM_Z,-0.12],
+  [0.62, ASSEM_X,       TABLE_SURF + 0.04, ASSEM_Z,-0.12],
+  [0.66, ASSEM_X,       TABLE_SURF + 0.04, ASSEM_Z, 0.28],  // release
+  [0.70, ASSEM_X,       TABLE_SURF + 0.24, ASSEM_Z, 0.28],  // retract
+  // Pick bezel
+  [0.76, SHELF_R_X,     SHELF_Y + 0.22, SHELF_Z - 0.05, 0.28],
+  [0.84, SHELF_R_X,     SHELF_Y + 0.04, SHELF_Z - 0.05, 0.28],
+  [0.88, SHELF_R_X,     SHELF_Y + 0.01, SHELF_Z - 0.05,-0.12],  // grip
+  [0.92, SHELF_R_X,     SHELF_Y + 0.24, SHELF_Z - 0.05,-0.12],  // lift
+  // Carry and release
+  [0.95, ASSEM_X,       TABLE_SURF + 0.24, ASSEM_Z,-0.12],
+  [0.97, ASSEM_X,       TABLE_SURF + 0.06, ASSEM_Z,-0.12],
+  [0.99, ASSEM_X,       TABLE_SURF + 0.06, ASSEM_Z, 0.28],  // release
+  [1.00, SH_B_OFF.x + 0.00, 1.00, 0.05, 0.28],
+];
+
+// ── Waypoint Sampling ─────────────────────────────────────────────────────────
+function coslerp(a, b, t) {
+  return a + (b-a) * (1 - Math.cos(t * Math.PI)) * 0.5;
+}
+
+function sampleWP(u, WP) {
+  let lo = WP[0], hi = WP[WP.length-1];
+  for (let i = 0; i < WP.length-1; i++) {
+    if (u >= WP[i][0] && u <= WP[i+1][0]) { lo = WP[i]; hi = WP[i+1]; break; }
+  }
+  const span = hi[0] - lo[0];
+  const t = span < 1e-6 ? 0 : (u - lo[0]) / span;
+  const tx = coslerp(lo[1], hi[1], t);
+  const ty = coslerp(lo[2], hi[2], t);
+  const tz = coslerp(lo[3], hi[3], t);
+  const grip = coslerp(lo[4], hi[4], t);
+  return {
+    tip: new THREE.Vector3(tx, Math.max(ty, WRIST_FLOOR), tz),
+    grip
+  };
+}
+
+// ── Phase names ───────────────────────────────────────────────────────────────
+function getPhaseA(u) {
+  if (u < 0.08) return 'Arm A: Idle';
+  if (u < 0.26) return 'Arm A: Approach panel';
+  if (u < 0.32) return 'Arm A: Descend';
+  if (u < 0.38) return 'Arm A: Grip panel';
+  if (u < 0.50) return 'Arm A: Lift';
+  if (u < 0.60) return 'Arm A: Carry panel';
+  if (u < 0.68) return 'Arm A: Place panel';
+  if (u < 0.82) return 'Arm A: Approach board';
+  if (u < 0.90) return 'Arm A: Grip board';
+  if (u < 0.98) return 'Arm A: Place board';
+  return 'Arm A: Return';
+}
+
+function getPhaseB(u) {
+  if (u < 0.10) return 'Arm B: Idle';
+  if (u < 0.27) return 'Arm B: Approach display';
+  if (u < 0.33) return 'Arm B: Descend';
+  if (u < 0.40) return 'Arm B: Grip display';
+  if (u < 0.52) return 'Arm B: Lift';
+  if (u < 0.66) return 'Arm B: Carry display';
+  if (u < 0.70) return 'Arm B: Place display';
+  if (u < 0.84) return 'Arm B: Approach bezel';
+  if (u < 0.92) return 'Arm B: Grip bezel';
+  if (u < 0.99) return 'Arm B: Place bezel';
+  return 'Arm B: Return';
+}
+
+// ── Drift arrays (simulate χ=64 compression artifacts) ────────────────────
+const DRIFT_A = Array.from({length:TOTAL_STEPS}, (_,i) =>
+  0.003*Math.sin(i*0.23+1.1) + 0.002*Math.sin(i*0.47+2.4));
+const DRIFT_B = Array.from({length:TOTAL_STEPS}, (_,i) =>
+  0.003*Math.sin(i*0.19+0.7) + 0.002*Math.sin(i*0.53+1.8));
+
+// ── Assembly state ─────────────────────────────────────────────────────────
+let bpPlaced = false, dpPlaced = false, cbPlaced = false, bzPlaced = false;
+
+function resetAssembly() {
+  bpPlaced = dpPlaced = cbPlaced = bzPlaced = false;
+  backPanel.position.copy(BP_SHELF);
+  backPanel.rotation.set(-Math.PI/2, 0, 0);
+  display.position.copy(DP_SHELF);
+  display.rotation.set(-Math.PI/2, 0, 0);
+  circuitBoard.position.copy(CB_SHELF);
+  circuitBoard.rotation.set(-Math.PI/2, 0, 0);
+  bezelGroup.position.copy(BZ_SHELF);
+  bezelGroup.rotation.set(-Math.PI/2, 0, 0);
+  carryA.active = false;
+  carryB.active = false;
+}
+
+function updateAssembly(u, tipA, tipB, gripA, gripB) {
+  // Arm A carries backPanel: grip at u≈0.32, release at u≈0.64
+  const aCarryBP = u >= 0.32 && u < 0.64;
+  const aCarryCB = u >= 0.86 && u < 0.98;
+  const bCarryDP = u >= 0.33 && u < 0.66;
+  const bCarryBZ = u >= 0.88 && u < 0.99;
+
+  // Back panel
+  if (aCarryBP && !bpPlaced) {
+    backPanel.rotation.set(0, 0, 0);
+    backPanel.position.set(tipA.x, tipA.y - 0.02, tipA.z);
+  } else if (u >= 0.64 && !bpPlaced) {
+    bpPlaced = true;
+    backPanel.position.copy(BP_ASSEM);
+    backPanel.rotation.set(0, 0, 0);
+  }
+
+  // Display
+  if (bCarryDP && !dpPlaced) {
+    display.rotation.set(0, 0, 0);
+    display.position.set(tipB.x, tipB.y - 0.015, tipB.z);
+  } else if (u >= 0.66 && !dpPlaced) {
+    dpPlaced = true;
+    display.position.copy(DP_ASSEM);
+    display.rotation.set(0, 0, 0);
+  }
+
+  // Circuit board
+  if (aCarryCB && !cbPlaced) {
+    circuitBoard.rotation.set(0, 0, 0);
+    circuitBoard.position.set(tipA.x, tipA.y - 0.01, tipA.z);
+  } else if (u >= 0.98 && !cbPlaced) {
+    cbPlaced = true;
+    circuitBoard.position.copy(CB_ASSEM);
+    circuitBoard.rotation.set(0, 0, 0);
+  }
+
+  // Bezel
+  if (bCarryBZ && !bzPlaced) {
+    bezelGroup.rotation.set(0, 0, 0);
+    bezelGroup.position.set(tipB.x, tipB.y - 0.01, tipB.z);
+  } else if (u >= 0.99 && !bzPlaced) {
+    bzPlaced = true;
+    bezelGroup.position.copy(BZ_ASSEM);
+    bezelGroup.rotation.set(0, 0, 0);
+  }
+
+  // Checklist UI
+  const setDone = (id, done) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = (done ? '☑ ' : '☐ ') + el.textContent.slice(2);
+    el.className = 'cl-item' + (done ? ' done' : '');
+  };
+  setDone('cl-bp', bpPlaced);
+  setDone('cl-dp', dpPlaced);
+  setDone('cl-cb', cbPlaced);
+  setDone('cl-bz', bzPlaced);
+}
+
+// ── Apply step ────────────────────────────────────────────────────────────────
+function applyStep(step) {
+  const u = step / (TOTAL_STEPS - 1);
+
+  const { tip: tipA, grip: gripA } = sampleWP(u, WP_A);
+  const { tip: tipB, grip: gripB } = sampleWP(u, WP_B);
+
+  // Compressed arm drift
+  const dA = DRIFT_A[step] || 0;
+  const dB = DRIFT_B[step] || 0;
+  const tipA_c = tipA.clone(); tipA_c.x += dA; tipA_c.y += dA * 0.5;
+  const tipB_c = tipB.clone(); tipB_c.x += dB; tipB_c.y += dB * 0.5;
+
+  // Solve IK for each arm pair
+  const [spA, syA, efA] = solveIK(tipA, SH_A_BASE);
+  const [spA2, syA2, efA2] = solveIK(tipA_c, SH_A_COMP);
+  const [spB, syB, efB] = solveIK(tipB, SH_B_BASE);
+  const [spB2, syB2, efB2] = solveIK(tipB_c, SH_B_COMP);
+
+  applyPose(ARM_A_BASE, spA,  syA,  efA,  gripA);
+  applyPose(ARM_A_COMP, spA2, syA2, efA2, gripA);
+  applyPose(ARM_B_BASE, spB,  syB,  efB,  gripB);
+  applyPose(ARM_B_COMP, spB2, syB2, efB2, gripB);
+
+  updateAssembly(u, tipA, tipB, gripA, gripB);
+
+  // Get actual tip world positions for part tracking
+  ARM_A_BASE.j_tip.getWorldPosition(tipA);
+  ARM_B_BASE.j_tip.getWorldPosition(tipB);
+
+  // HUD
+  const pct = Math.round(u * 100);
+  document.getElementById('progfill').style.width = pct + '%';
+  document.getElementById('progfill').style.background =
+    pct < 33 ? '#cf2c2c' : pct < 66 ? '#d4820a' : '#238636';
+  document.getElementById('stepLabel').textContent = `${step} / ${TOTAL_STEPS-1}`;
+  document.getElementById('scrubber').value = step;
+
+  const phaseStr = getPhaseA(u);
+  document.getElementById('phaseLabel').textContent = phaseStr;
+  document.getElementById('m-phase').textContent = phaseStr;
+  document.getElementById('m-step').textContent = `${step} / ${TOTAL_STEPS-1}`;
+  document.getElementById('m-tp').textContent = '~3.2 units/hr';
+  document.getElementById('m-ct').textContent = (u * 25).toFixed(1) + ' s';
+}
+
+// ── Animation loop ────────────────────────────────────────────────────────────
+let playing = false;
+let step = 0;
+let lastTime = 0;
+let speed = 1;
+let accumMs = 0;
+const STEP_MS = 120;  // ms per step at 1×
+
+function animate(now) {
+  requestAnimationFrame(animate);
+  controls.update();
+
+  if (playing) {
+    accumMs += (now - lastTime) * speed;
+    while (accumMs >= STEP_MS) {
+      accumMs -= STEP_MS;
+      step = (step + 1) % TOTAL_STEPS;
+      if (step === 0) { resetAssembly(); bpPlaced=false; dpPlaced=false; cbPlaced=false; bzPlaced=false; }
+    }
+  }
+  lastTime = now;
+  applyStep(step);
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(animate);
+
+// ── Controls ──────────────────────────────────────────────────────────────────
+const btnPlay  = document.getElementById('btnPlay');
+const btnSpeed = document.getElementById('btnSpeed');
+const btnReset = document.getElementById('btnReset');
+const scrubber = document.getElementById('scrubber');
+
+btnPlay.addEventListener('click', () => {
+  playing = !playing;
+  btnPlay.textContent = playing ? '⏸ Pause' : '▶ Play';
+});
+
+const speeds = [0.5, 1, 2, 4];
+let speedIdx = 1;
+btnSpeed.addEventListener('click', () => {
+  speedIdx = (speedIdx + 1) % speeds.length;
+  speed = speeds[speedIdx];
+  btnSpeed.textContent = speed + '×';
+});
+
+btnReset.addEventListener('click', () => {
+  camera.position.copy(CAM_DEF_POS);
+  controls.target.copy(CAM_DEF_TGT);
+  controls.update();
+});
+
+scrubber.addEventListener('input', () => {
+  playing = false;
+  btnPlay.textContent = '▶ Play';
+  step = parseInt(scrubber.value);
+  const u = step / (TOTAL_STEPS - 1);
+  bpPlaced = u >= 0.64;
+  dpPlaced = u >= 0.66;
+  cbPlaced = u >= 0.98;
+  bzPlaced = u >= 0.99;
+  if (!bpPlaced) { backPanel.position.copy(BP_SHELF); backPanel.rotation.set(-Math.PI/2,0,0); }
+  if (!dpPlaced) { display.position.copy(DP_SHELF); display.rotation.set(-Math.PI/2,0,0); }
+  if (!cbPlaced) { circuitBoard.position.copy(CB_SHELF); circuitBoard.rotation.set(-Math.PI/2,0,0); }
+  if (!bzPlaced) { bezelGroup.position.copy(BZ_SHELF); bezelGroup.rotation.set(-Math.PI/2,0,0); }
+});
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// Start with step 0 rendered
+applyStep(0);
+</script>
+</body>
+</html>
