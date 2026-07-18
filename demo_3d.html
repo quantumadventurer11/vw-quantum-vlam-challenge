@@ -467,7 +467,7 @@ function sampleWP(u) {
   const ty=coslerp(lo[2],hi[2],t);
   const tz=coslerp(lo[3],hi[3],t);
   const grip=coslerp(lo[4],hi[4],t);
-  return { tip: new THREE.Vector3(tx, Math.max(ty, TABLE_SURF), tz), grip };
+  return { tip: new THREE.Vector3(tx, Math.max(ty, TABLE_SURF + 0.10), tz), grip };
 }
 
 // ── Phase names ────────────────────────────────────────────────────────────────
@@ -541,7 +541,9 @@ function syncBlock(u, wpTip){
   else if(!gripping && blockHeld){ blockHeld=false; blockMesh.material=MAT.block; }
 
   if(gripping){
-    blockPos.set(wpTip.x, Math.max(wpTip.y, BLOCK_REST_Y), wpTip.z);
+    // Keep block on table until lift phase; then follow arm upward
+    const blockY = u < 0.47 ? BLOCK_REST_Y : Math.max(wpTip.y, BLOCK_REST_Y);
+    blockPos.set(wpTip.x, blockY, wpTip.z);
   } else if(u>=0.82){
     blockPos.set(DROP_X, BLOCK_REST_Y, DROP_Z);
   } else {
