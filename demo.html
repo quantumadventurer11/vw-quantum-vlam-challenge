@@ -96,6 +96,48 @@
     font-size: 12px; color: #484f58; display: flex; justify-content: space-between;
   }
   footer a { color: #58a6ff; text-decoration: none; }
+
+  /* Data integrity / annotation styles */
+  #est-banner {
+    background: #2d1e04; border-bottom: 2px solid #d29922;
+    padding: 10px 48px; font-size: 13px; color: #e3b341;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  #est-banner button {
+    background: none; border: none; color: #e3b341; cursor: pointer;
+    font-size: 18px; margin-left: 16px; line-height: 1; flex-shrink: 0;
+  }
+  .table-note { font-size: 11px; color: #6e7681; margin-top: 10px; line-height: 1.6; }
+  td[title] { cursor: help; }
+
+  /* Methodology panel */
+  .methodology-wrap { max-width: 1200px; margin: 0 auto 24px; padding: 0 32px; }
+  .methodology-panel {
+    background: #161b22; border: 1px solid #30363d; border-radius: 10px;
+    overflow: hidden;
+  }
+  .methodology-panel summary {
+    cursor: pointer; font-size: 13px; font-weight: 600;
+    color: #8b949e; padding: 14px 18px; user-select: none;
+    list-style: none; display: flex; align-items: center; gap: 8px;
+  }
+  .methodology-panel summary::before { content: '▶'; font-size: 10px; }
+  .methodology-panel[open] summary::before { content: '▼'; }
+  .methodology-panel summary:hover { color: #c9d1d9; }
+  .methodology-panel .method-body {
+    padding: 16px 20px; border-top: 1px solid #21262d;
+  }
+  .methodology-panel li {
+    font-size: 13px; color: #8b949e; line-height: 1.8;
+    margin-left: 18px; margin-bottom: 2px;
+  }
+
+  /* Compression inspector */
+  .frob-table { font-size: 12px; }
+  .frob-table th { font-size: 11px; }
+  .frob-table td.hi-err { color: #f0883e; }
+  .frob-table td.ok-err { color: #e3b341; }
+  .frob-table td.lo-err { color: #3fb950; }
 </style>
 </head>
 <body>
@@ -114,6 +156,13 @@
   </div>
 </header>
 
+<div id="est-banner">
+  <span>⚠ <strong>Phase 3 metrics are ESTIMATED</strong> — derived from Phase 2 weight-space
+  Frobenius reconstruction data, not direct GPU inference. Phase 1 baseline (FP16) metrics are
+  real measured values. GPU eval pending Kaggle quota reset (~2026-07-18).</span>
+  <button onclick="this.parentElement.remove()" title="Dismiss">✕</button>
+</div>
+
 <div class="main">
 
   <!-- Key metrics -->
@@ -129,9 +178,9 @@
       <div class="detail" id="m-l1-std">± 0.0121 (3 seeds, estimated)</div>
     </div>
     <div class="metric">
-      <div class="label">Inference Time</div>
+      <div class="label">Inference Time (Phase 1 baseline)</div>
       <div class="value" id="m-time">2096 ms</div>
-      <div class="detail">same as FP16 baseline</div>
+      <div class="detail">Phase 3 timing not separately measured — all χ variants inherit Phase 1 baseline. Real measurement pending.</div>
     </div>
     <div class="metric">
       <div class="label">FP16 Baseline L1</div>
@@ -166,41 +215,61 @@
     <div class="card">
       <div class="card-header"><span class="dot blue"></span> Bond Dimension Sweep</div>
       <div class="card-body">
-        <table class="chi-table" id="chi-table">
-          <thead><tr><th>χ</th><th>Compression</th><th>L1 Shift</th><th>Params</th></tr></thead>
+        <table class="chi-table frob-table" id="chi-table">
+          <thead><tr><th>χ</th><th>Compression</th><th>L1 Shift †</th><th>Params</th><th title="Phase 2 measured Frobenius reconstruction error (mean across 217 layers)">Frob. Err (Ph2) ★</th></tr></thead>
           <tbody id="chi-tbody">
-            <tr><td>16</td><td class="good mono">7.02×</td><td class="warn mono">0.2580</td><td class="mono">~0.23B</td></tr>
-            <tr><td>32</td><td class="good mono">6.86×</td><td class="warn mono">0.1380</td><td class="mono">~0.30B</td></tr>
-            <tr><td>64</td><td class="good mono">6.28×</td><td class="good mono">0.0830</td><td class="mono">~1.20B</td></tr>
-            <tr><td>128</td><td class="mono">5.47×</td><td class="good mono">0.0540</td><td class="mono">~1.38B</td></tr>
+            <tr data-chi="16"><td>16</td><td class="good mono">7.02×</td><td class="warn mono">0.2580</td><td class="mono" id="p-16">~1.07B</td><td class="mono hi-err" id="f-16">—</td></tr>
+            <tr data-chi="32"><td>32</td><td class="good mono">6.86×</td><td class="warn mono">0.1380</td><td class="mono" id="p-32">~1.10B</td><td class="mono hi-err" id="f-32">—</td></tr>
+            <tr data-chi="64"><td>64</td><td class="good mono">6.28×</td><td class="good mono">0.0830</td><td class="mono" id="p-64">~1.20B</td><td class="mono ok-err" id="f-64">—</td></tr>
+            <tr data-chi="128"><td>128</td><td class="mono">5.47×</td><td class="good mono">0.0540</td><td class="mono" id="p-128">~1.38B</td><td class="mono lo-err" id="f-128">—</td></tr>
           </tbody>
         </table>
+        <p class="table-note">† L1 Shift values are <strong>estimated</strong> from Phase 2 Frobenius reconstruction data using a log-χ scaling model (Phase 3 GPU eval pending). ★ Frobenius error is real Phase 2 measured data (217 layers per χ). n=3 seeds per χ — confidence intervals between adjacent bond dimensions likely overlap; differences may not be statistically significant.</p>
       </div>
     </div>
     <div class="card">
       <div class="card-header"><span class="dot orange"></span> Ablation (χ=64)</div>
       <div class="card-body">
         <table id="ablation-table">
-          <thead><tr><th>Condition</th><th>L1 Shift</th><th>Params</th></tr></thead>
+          <thead><tr><th>Condition</th><th>L1 Shift †</th><th>Params</th><th title="Not measured — OpenVLA was never evaluated on automotive assembly tasks. L1 action shift is a weight-space proxy only.">Task Success ‡</th></tr></thead>
           <tbody id="ablation-tbody">
             <tr>
               <td><span class="badge">A</span> FP16 baseline</td>
               <td class="mono">0.0000</td>
               <td class="mono">7.54B</td>
+              <td class="mono" title="Not measured on automotive assembly tasks">—</td>
             </tr>
             <tr>
               <td><span class="badge">B</span> TN LLM only</td>
               <td class="mono">0.0830</td>
               <td class="mono">~1.20B</td>
+              <td class="mono" title="Not measured on automotive assembly tasks">—</td>
             </tr>
             <tr>
               <td><span class="badge">C</span> TN full model</td>
               <td class="mono">0.1210</td>
               <td class="mono">~0.35B</td>
+              <td class="mono" title="Not measured on automotive assembly tasks">—</td>
             </tr>
           </tbody>
         </table>
+        <p class="table-note">† L1 Shift is <strong>estimated</strong> for conditions B and C (Phase 3 GPU eval pending). ‡ Task success not measured — OpenVLA-7B was evaluated on lerobot/toto (Open X-Embodiment proxy), not on automotive assembly tasks. n=3 seeds; adjacent condition differences may not be statistically significant.</p>
       </div>
+    </div>
+  </div>
+
+  <!-- Compression inspector (real Phase 2 data) -->
+  <div class="section-title">Phase 2 Compression Run Statistics (Real Measured Data)</div>
+  <div class="card" style="margin-bottom:40px;">
+    <div class="card-header"><span class="dot green"></span> Per-χ compression statistics — 217 layers, 7 target weight types (q/k/v/o/gate/up/down proj)</div>
+    <div class="card-body">
+      <table class="frob-table" id="frob-table">
+        <thead><tr><th>χ</th><th>Layers</th><th>Core params</th><th>Mean layer ratio</th><th>Min layer ratio</th><th>Frob. err (mean)</th><th>Frob. err (p95)</th><th>Elapsed (s)</th></tr></thead>
+        <tbody id="frob-tbody">
+          <tr><td colspan="8" style="color:#484f58;font-style:italic;text-align:center;">Loading…</td></tr>
+        </tbody>
+      </table>
+      <p class="table-note">All values in this table are real Phase 2 measurements (torch.linalg.svd sweep on Kaggle P100). Frobenius error = ‖W − W̃‖₂ / ‖W‖₂ per layer, averaged across compressed layers.</p>
     </div>
   </div>
 
@@ -236,9 +305,27 @@
 
 </div>
 
+<div class="methodology-wrap">
+  <details class="methodology-panel">
+    <summary>Methodology &amp; Limitations</summary>
+    <div class="method-body">
+      <ul>
+        <li>OpenVLA-7B was trained on Open X-Embodiment (bridge_dataset subset) — <strong>not</strong> on automotive or EV assembly tasks</li>
+        <li>Compression method: MPS/MPO SVD sweep via <code>torch.linalg.svd</code>, n_sites=4, bond dims χ∈{16,32,64,128}, 7 target weight types per LLM layer</li>
+        <li>Phase 3 L1 shift values are <strong>estimated</strong> using a log-χ scaling model anchored to CompactifAI results applied to Phase 2 Frobenius reconstruction error — not measured by running compressed model forward passes</li>
+        <li>Inference timing: Phase 1 baseline only (2095.6 ms ± 1.2 ms, 3 seeds × 50 episodes on lerobot/toto). Phase 3 timing was not separately measured for any χ variant</li>
+        <li>3D visualizations (demo_3d.html, demo_factory.html) are schematic kinematic simulations driven by IK + synthetic drift arrays — not physics-based and not driven by real model outputs</li>
+        <li>OpenVLA-7B weights are released under <strong>LLaMA-2 Community License (non-commercial research only)</strong>; code is MIT</li>
+        <li>Evaluation proxy: mean L1 action-prediction error on held-out lerobot/toto episodes (Open X-Embodiment bridge_dataset substitute); n=3 seeds × 50 episodes each</li>
+        <li>Phase 3 GPU eval failed due to Kaggle weekly quota exhaustion (30 h/week limit reached); results will be updated when quota resets (~2026-07-18)</li>
+      </ul>
+    </div>
+  </details>
+</div>
+
 <footer>
   <span>Benjamin Brumm &nbsp;·&nbsp; Sponsored by <a href="https://pantheonquantum.com">Pantheon Quantum</a></span>
-  <span>Metrics marked "estimated" derive from Phase 2 Frobenius reconstruction data; direct GPU eval pending quota reset ~2026-07-18</span>
+  <span>Global Quantum + AI Challenge 2026 — VW Group Enterprise Track</span>
 </footer>
 
 <script>
@@ -278,17 +365,57 @@ async function loadData() {
         <td><span class="badge">${letter}</span> ${label}</td>
         <td class="mono">${l1.mean.toFixed(4)} ± ${l1.std.toFixed(4)}</td>
         <td class="mono">${params}</td>
+        <td class="mono" title="Not measured on automotive assembly tasks">—</td>
       </tr>`;
     });
   } catch(e) {}
 
   try {
+    // Fix: bond_dims is an array, not a keyed object
     const pl = await fetch('http://localhost:8765/results/pennylane_feasibility.json').then(r => r.json());
-    const chi16 = pl.bond_dims?.['16'] || pl['16'] || {};
-    if (chi16.cnot_depth) document.getElementById('pl-cnot').textContent = chi16.cnot_depth;
-    if (chi16.n_qubits)   document.getElementById('pl-qubits').textContent = chi16.n_qubits;
-    if (chi16.feasible !== undefined)
-      document.getElementById('pl-feasible').textContent = chi16.feasible ? 'Yes ✓' : 'No';
+    const chi16 = pl.bond_dims?.find(b => b.chi === 16) || {};
+    if (chi16.total_cnot_depth) document.getElementById('pl-cnot').textContent = chi16.total_cnot_depth;
+    if (chi16.total_bond_q)     document.getElementById('pl-qubits').textContent = chi16.total_bond_q;
+    // feasibility_verdict is a string map, not boolean; leave static "Near-term" HTML
+  } catch(e) {}
+
+  try {
+    const cs = await fetch('http://localhost:8765/results/compression_sweep_stats.json').then(r => r.json());
+    // n_nontarget = n_total - n_target_params_orig (both from Phase 2 real data)
+    const N_NONTARGET = cs.n_total_params - cs.n_target_params_orig; // = 1,065,231,808
+
+    // Update chi-table param column and populate Frobenius error column
+    const ERR_CLASS = e => e > 0.97 ? 'hi-err' : e > 0.92 ? 'ok-err' : 'lo-err';
+    Object.entries(cs.sweep_stats).forEach(([chi, s]) => {
+      const pEl = document.getElementById('p-' + chi);
+      if (pEl) pEl.textContent = '~' + ((N_NONTARGET + s.total_core_params) / 1e9).toFixed(2) + 'B';
+      const fEl = document.getElementById('f-' + chi);
+      if (fEl) {
+        fEl.textContent = s.frob_error_mean.toFixed(4);
+        fEl.className = 'mono ' + ERR_CLASS(s.frob_error_mean);
+      }
+    });
+
+    // Populate compression inspector table
+    const frobtbody = document.getElementById('frob-tbody');
+    if (frobtbody) {
+      frobtbody.innerHTML = '';
+      [16, 32, 64, 128].forEach(chi => {
+        const s = cs.sweep_stats[String(chi)];
+        if (!s) return;
+        const coreM = (s.total_core_params / 1e6).toFixed(1);
+        frobtbody.innerHTML += `<tr>
+          <td>${chi}</td>
+          <td>${s.n_layers_compressed}</td>
+          <td class="mono">${coreM}M</td>
+          <td class="mono">${s.layer_compression_ratio_mean.toFixed(1)}×</td>
+          <td class="mono">${s.layer_compression_ratio_min.toFixed(2)}×</td>
+          <td class="mono ${ERR_CLASS(s.frob_error_mean)}">${s.frob_error_mean.toFixed(4)}</td>
+          <td class="mono ${ERR_CLASS(s.frob_error_p95)}">${s.frob_error_p95.toFixed(4)}</td>
+          <td class="mono">${s.elapsed_s.toFixed(0)}s</td>
+        </tr>`;
+      });
+    }
   } catch(e) {}
 }
 loadData();
