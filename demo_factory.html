@@ -3,140 +3,331 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VW ID.4 Battery Assembly — Digital Twin · Figure 03 · χ=64 OpenVLA-7B</title>
+<title>VW ID.4 Battery Assembly — Digital Twin · χ=64 OpenVLA-7B</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: #06080e; overflow: hidden; font-family: 'Segoe UI', system-ui, sans-serif; color: #e6edf3; }
 #c { display: block; width: 100vw; height: 100vh; }
-
 #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
 
 /* ── top bar ── */
 #topbar {
   position: absolute; top: 0; left: 0; right: 0;
-  background: linear-gradient(180deg, rgba(6,8,14,.94) 75%, transparent);
-  padding: 13px 20px 20px;
-  display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap;
+  background: linear-gradient(180deg, rgba(6,8,14,.97) 70%, transparent);
+  padding: 14px 20px 28px;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
 }
-.topbar-text .title { font-size: 15px; font-weight: 700; color: #f0f6fc; }
-.topbar-text .sub   { font-size: 11px; color: #6e7680; margin-top: 3px; letter-spacing: .2px; }
+.topbar-text { flex: 1; min-width: 0; }
+.topbar-text .title {
+  font-size: 17px; font-weight: 700; color: #ffffff;
+  letter-spacing: -.3px; line-height: 1.25;
+}
+.topbar-text .sub {
+  font-size: 12px; color: #8b949e; margin-top: 5px; letter-spacing: .15px;
+}
+.topbar-text .disclaimer {
+  font-size: 10px; color: #484f58; margin-top: 3px; letter-spacing: .3px;
+}
+.meta-bar {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding-top: 2px;
+}
 .pill {
-  display: inline-block; font-size: 11px; padding: 3px 10px; border-radius: 20px;
-  background: #0f2d1a; border: 1px solid #238636; color: #3fb950; white-space: nowrap; margin-top: 2px;
+  display: inline-flex; align-items: center; font-size: 11px;
+  padding: 4px 11px; border-radius: 20px; font-weight: 500;
+  background: #0f2d1a; border: 1px solid #238636; color: #3fb950; white-space: nowrap;
 }
 .pill-blue { background: #0c1a38; border-color: #1a4fff; color: #58a6ff; }
+.meta-sep { width: 1px; height: 16px; background: #1e2230; }
 
 /* ── legend ── */
 #legend {
-  position: absolute; top: 70px; right: 16px;
-  background: rgba(10,12,18,.84); border: 1px solid #1e2230; border-radius: 8px;
-  padding: 10px 14px; font-size: 12px;
+  position: absolute; top: 82px; right: 16px;
+  background: rgba(10,12,18,.92); border: 1px solid #1e2230; border-radius: 8px;
+  padding: 10px 14px; min-width: 215px; pointer-events: all;
 }
-#legend .row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+#legend .legend-title {
+  font-size: 9px; text-transform: uppercase; letter-spacing: .8px;
+  color: #6e7680; margin-bottom: 9px;
+}
+#legend .row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 #legend .row:last-child { margin-bottom: 0; }
+#legend .row-label { color: #8b949e; font-size: 12px; }
 .sq { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
-.sq-b { background: #3060c8; }
-.sq-o { background: #c86020; }
+.sq-b { background: #1a3aff; box-shadow: 0 0 6px rgba(26,58,255,.7); }
+.sq-o { background: #ff5500; box-shadow: 0 0 6px rgba(255,85,0,.6); }
+.sq-y { background: #f0c000; box-shadow: 0 0 5px rgba(240,192,0,.5); }
+#legend .leg-divider { height: 1px; background: #1e2230; margin: 7px 0; }
 
-/* ── checklist ── */
+/* ── checklist — timeline style ── */
 #checklist {
-  position: absolute; bottom: 96px; left: 16px;
-  background: rgba(10,12,18,.84); border: 1px solid #1e2230; border-radius: 8px;
-  padding: 12px 16px; min-width: 200px;
+  position: absolute; bottom: 110px; left: 16px;
+  background: rgba(10,12,18,.92); border: 1px solid #1e2230; border-radius: 8px;
+  padding: 12px 14px; min-width: 195px;
+  transition: border-color .4s, box-shadow .4s;
 }
-#checklist .cl-title { font-size: 10px; text-transform: uppercase; letter-spacing: .7px; color: #6e7680; margin-bottom: 9px; }
-.cl-item { font-size: 13px; margin-bottom: 6px; color: #8b949e; transition: color .4s; display: flex; align-items: center; gap: 7px; }
-.cl-item .ck { font-size: 16px; line-height: 1; }
-.cl-item.done { color: #3fb950; }
+#checklist.active-focus {
+  border-color: #238636;
+  box-shadow: 0 0 22px rgba(35,134,54,.14);
+}
+.cl-title {
+  font-size: 9px; text-transform: uppercase; letter-spacing: .8px;
+  color: #6e7680; margin-bottom: 10px;
+}
+.cl-step { display: flex; align-items: flex-start; gap: 9px; }
+.cl-left { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+.cl-dot {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: #0e1018; border: 1.5px solid #2a2e40;
+  color: #6e7680; font-size: 10px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .4s, border-color .4s, color .4s, box-shadow .4s;
+  position: relative; z-index: 1;
+}
+.cl-connector {
+  width: 1.5px; height: 16px; background: #2a2e40;
+  margin: 2px auto; transition: background .4s;
+}
+.cl-text {
+  font-size: 12px; color: #6e7680; line-height: 22px;
+  padding-bottom: 18px; transition: color .4s, font-weight .2s;
+}
+.cl-step.done .cl-dot { background: #0f2d1a; border-color: #238636; color: #3fb950; }
+.cl-step.done .cl-connector { background: #238636; }
+.cl-step.done .cl-text { color: #3fb950; }
+.cl-step.active .cl-dot {
+  background: #0c1a38; border-color: #58a6ff; color: #f0f6fc;
+  box-shadow: 0 0 10px rgba(88,166,255,.45);
+}
+.cl-step.active .cl-text { color: #c9d1d9; font-weight: 600; }
 
-/* ── metrics ── */
+/* ── metrics panel — primary data, high visual weight ── */
 #mbox {
-  position: absolute; bottom: 96px; right: 16px;
-  background: rgba(10,12,18,.84); border: 1px solid #1e2230; border-radius: 8px;
-  padding: 12px 16px; min-width: 200px;
+  position: absolute; bottom: 110px; right: 16px;
+  background: rgba(8,10,18,.95);
+  border: 1px solid #1a3060;
+  box-shadow: 0 0 0 1px rgba(88,166,255,.05),
+              0 0 30px rgba(88,166,255,.12),
+              inset 0 1px 0 rgba(88,166,255,.06);
+  border-radius: 8px; padding: 13px 16px; min-width: 218px;
+  pointer-events: all;
+  transition: border-color .4s, box-shadow .4s;
 }
-#mbox .mt { font-size: 10px; text-transform: uppercase; letter-spacing: .7px; color: #6e7680; margin-bottom: 9px; }
-#mbox .row { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 4px; font-size: 12px; }
-#mbox .lbl { color: #6e7680; }
+#mbox.active-focus {
+  border-color: #1a4fff;
+  box-shadow: 0 0 0 1px rgba(88,166,255,.14),
+              0 0 40px rgba(88,166,255,.22),
+              inset 0 1px 0 rgba(88,166,255,.10);
+}
+#mbox .mt {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .9px;
+  color: #58a6ff; margin-bottom: 11px; font-weight: 600;
+  display: flex; align-items: center; gap: 7px;
+}
+#mbox .mt::before {
+  content: ''; display: inline-block; width: 7px; height: 7px;
+  border-radius: 50%; background: #3fb950;
+  box-shadow: 0 0 6px rgba(63,185,80,.8);
+  animation: pulse-dot 2.2s ease-in-out infinite; flex-shrink: 0;
+}
+@keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:.3;} }
+#mbox .row {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 8px; margin-bottom: 6px; font-size: 12px;
+}
+#mbox .row:last-child { margin-bottom: 0; }
+#mbox .lbl { color: #8b949e; white-space: nowrap; }
+#mbox .val-group { display: flex; align-items: center; gap: 5px; margin-left: auto; }
 #mbox .val { color: #f0f6fc; font-weight: 600; font-variant-numeric: tabular-nums; }
-#mbox .val.g { color: #3fb950; }
+#mbox .val.g { color: #3fb950; font-size: 14px; }
 #mbox .val.b { color: #58a6ff; }
+#mbox .val.amber { color: #d48020; }
+.trend { font-size: 12px; min-width: 14px; text-align: right; }
+.trend.stable { color: #484f58; }
+.trend.good  { color: #3fb950; }
+.trend.warn  { color: #d48020; }
+.est-badge {
+  font-size: 9px; color: #d48020; background: rgba(212,128,32,.12);
+  border: 1px solid rgba(212,128,32,.28); border-radius: 3px;
+  padding: 1px 5px; white-space: nowrap;
+}
+.info-icon {
+  font-size: 10px; color: #6e7680; cursor: help; display: inline-block;
+  position: relative; vertical-align: middle; margin-left: 2px;
+}
+.info-icon::after {
+  content: attr(data-tip);
+  position: absolute; bottom: calc(100% + 8px); right: -4px;
+  background: #1a1e2c; border: 1px solid #2a2e40; border-radius: 6px;
+  padding: 8px 11px; font-size: 11px; color: #c9d1d9; white-space: normal;
+  width: 215px; z-index: 200; pointer-events: none; line-height: 1.5;
+  box-shadow: 0 6px 24px rgba(0,0,0,.75);
+  opacity: 0; transition: opacity .15s;
+}
+.info-icon:hover::after { opacity: 1; }
+#mbox .m-divider { height: 1px; background: rgba(255,255,255,.05); margin: 5px 0; }
 
 /* ── progress bar ── */
 #progbar {
-  position: absolute; left: 16px; right: 16px; bottom: 70px;
-  height: 4px; background: #1a1e2c; border-radius: 2px; overflow: hidden;
+  position: absolute; left: 0; right: 0; bottom: 77px;
+  height: 3px; background: rgba(255,255,255,.04);
 }
-#progfill { height: 100%; width: 0%; border-radius: 2px; transition: background .6s; }
+#progfill { height: 100%; width: 0%; transition: background .4s; }
+
+/* ── phase display (above controls) ── */
+#phaseDisplay {
+  position: absolute; left: 0; right: 0; bottom: 80px;
+  pointer-events: none;
+  display: flex; justify-content: center; align-items: center;
+  transform: translateY(-3px);
+}
+.phase-pill {
+  background: rgba(10,14,26,.93);
+  border: 1px solid rgba(88,166,255,.22); border-radius: 4px;
+  padding: 5px 16px;
+  display: flex; align-items: center; gap: 8px;
+  box-shadow: 0 0 18px rgba(88,166,255,.10);
+}
+.phase-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; transition: background .4s, box-shadow .4s; }
+.phase-dot.live  { background: #3fb950; box-shadow: 0 0 7px rgba(63,185,80,.8); }
+.phase-dot.idle  { background: #484f58; box-shadow: none; }
+#phaseText { font-size: 13px; font-weight: 600; color: #58a6ff; letter-spacing: .2px; white-space: nowrap; }
 
 /* ── controls ── */
 #controls {
   position: absolute; bottom: 0; left: 0; right: 0;
   pointer-events: all;
-  background: linear-gradient(0deg, rgba(6,8,14,.96) 80%, transparent);
-  padding: 8px 16px 14px;
-  display: flex; align-items: center; gap: 10px;
+  background: linear-gradient(0deg, rgba(6,8,14,.97) 82%, transparent);
+  padding: 6px 16px 13px;
+  display: flex; align-items: center; gap: 0;
 }
+.ctrl-group { display: flex; align-items: center; gap: 4px; }
+.ctrl-sep { width: 1px; height: 22px; background: rgba(255,255,255,.07); margin: 0 10px; flex-shrink: 0; }
 #controls button {
-  background: #1a1e2c; border: 1px solid #2a2e40; color: #c9d1d9;
-  border-radius: 6px; padding: 5px 13px; cursor: pointer; font-size: 12px;
-  transition: background .15s; white-space: nowrap;
+  background: #141820; border: 1px solid #24283a; color: #c9d1d9;
+  border-radius: 6px; padding: 5px 11px; cursor: pointer; font-size: 12px;
+  transition: background .15s, border-color .15s; white-space: nowrap;
 }
-#controls button:hover { background: #252a3a; }
-#scrubber { flex: 1; accent-color: #3060c8; cursor: pointer; height: 4px; }
-#stepLabel  { font-size: 11px; color: #6e7680; min-width: 58px; text-align: right; font-variant-numeric: tabular-nums; }
-#phaseLabel { font-size: 12px; color: #58a6ff; min-width: 180px; }
+#controls button:hover { background: #1e2436; border-color: #353a50; }
+#scrubber { flex: 1; accent-color: #1a4fff; cursor: pointer; height: 4px; margin: 0 6px; }
+#elapsedLabel {
+  font-size: 10px; color: #6e7680; min-width: 104px;
+  text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
 
 <div id="hud">
+
+  <!-- Top bar: title + metadata bar -->
   <div id="topbar">
     <div class="topbar-text">
       <div class="title">VW ID.4 Battery Module Assembly — Digital Twin</div>
       <div class="sub">χ=64 OpenVLA-7B · Dual-Arm Parallel Assembly · VW Group Production</div>
-      <div style="font-size:10px;color:#484f58;letter-spacing:.3px;margin-top:2px;">Schematic kinematic visualization — not a physics simulation · drift arrays are synthetic</div>
+      <div class="disclaimer">Schematic kinematic visualization — not a physics simulation · drift arrays are synthetic</div>
     </div>
-    <span class="pill">Phase 4 ✓ MuJoCo</span>
-    <span class="pill pill-blue">Industrial Arms · Oct 2025</span>
+    <div class="meta-bar">
+      <span class="pill">Phase 4 ✓ MuJoCo</span>
+      <div class="meta-sep"></div>
+      <span class="pill pill-blue">Industrial Arms · Oct 2025</span>
+    </div>
   </div>
 
+  <!-- Legend: color key tied to 3D elements + floor markings -->
   <div id="legend">
-    <div class="row"><span class="sq sq-b"></span><span>FP16 baseline</span></div>
-    <div class="row"><span class="sq sq-o"></span><span>χ=64 compressed</span></div>
+    <div class="legend-title">Color Key</div>
+    <div class="row"><span class="sq sq-b"></span><span class="row-label">FP16 baseline trajectory</span></div>
+    <div class="row"><span class="sq sq-o"></span><span class="row-label">χ=64 compressed trajectory</span></div>
+    <div class="leg-divider"></div>
+    <div class="row"><span class="sq sq-y"></span><span class="row-label">Safety perimeter / HV zone</span></div>
   </div>
 
+  <!-- Checklist: timeline/step-tracker style -->
   <div id="checklist">
-    <div class="cl-title">Assembly Checklist</div>
-    <div class="cl-item" id="cl-ma"><span class="ck">☐</span> Cell Module A → Bay 1</div>
-    <div class="cl-item" id="cl-mb"><span class="ck">☐</span> Cell Module B → Bay 2</div>
-    <div class="cl-item" id="cl-cp"><span class="ck">☐</span> Cooling Plate Fitted</div>
-    <div class="cl-item" id="cl-bm"><span class="ck">☐</span> BMS Cover Sealed</div>
+    <div class="cl-title">Assembly Progress</div>
+    <div class="cl-step" id="cl-ma">
+      <div class="cl-left"><div class="cl-dot">1</div><div class="cl-connector"></div></div>
+      <div class="cl-text">Cell Module A → Bay 1</div>
+    </div>
+    <div class="cl-step" id="cl-mb">
+      <div class="cl-left"><div class="cl-dot">2</div><div class="cl-connector"></div></div>
+      <div class="cl-text">Cell Module B → Bay 2</div>
+    </div>
+    <div class="cl-step" id="cl-cp">
+      <div class="cl-left"><div class="cl-dot">3</div><div class="cl-connector"></div></div>
+      <div class="cl-text">Cooling Plate Fitted</div>
+    </div>
+    <div class="cl-step" id="cl-bm">
+      <div class="cl-left"><div class="cl-dot">4</div></div>
+      <div class="cl-text" style="padding-bottom:0">BMS Cover Sealed</div>
+    </div>
   </div>
 
+  <!-- Metrics: primary panel with glow, large throughput, amber est., tooltip -->
   <div id="mbox">
     <div class="mt">Factory Metrics</div>
-    <div class="row"><span class="lbl">Throughput</span><span class="val g" id="m-tp">~3.2 packs/hr</span></div>
-    <div class="row"><span class="lbl">Cycle time</span><span class="val" id="m-ct">0.0 s</span></div>
-    <div class="row"><span class="lbl">χ=64 L1 †</span><span class="val b">0.0830 (est.)</span></div>
-    <div class="row"><span class="lbl">Step</span><span class="val b" id="m-step">0 / 199</span></div>
-    <div class="row"><span class="lbl">Phase</span><span class="val" id="m-phase">Standby</span></div>
-    <div style="font-size:9px;color:#484f58;margin-top:5px;">† Phase 3 metric estimated from Phase 2 Frobenius data</div>
+    <div class="row">
+      <span class="lbl">Throughput</span>
+      <span class="val-group">
+        <span class="val g" id="m-tp">~3.2 packs/hr</span>
+        <span class="trend good">↑</span>
+      </span>
+    </div>
+    <div class="row">
+      <span class="lbl">Cycle time</span>
+      <span class="val-group">
+        <span class="val" id="m-ct">0.0 s</span>
+        <span class="trend stable" id="trend-ct">→</span>
+      </span>
+    </div>
+    <div class="m-divider"></div>
+    <div class="row">
+      <span class="lbl">χ=64 L1
+        <span class="info-icon" data-tip="Estimated from Phase 2 Frobenius error norms. Phase 3 GPU inference evaluation in progress — this value updates automatically on completion.">ⓘ</span>
+      </span>
+      <span class="val-group">
+        <span class="val amber">0.0830</span>
+        <span class="est-badge">est.</span>
+      </span>
+    </div>
+    <div class="row">
+      <span class="lbl">Step</span>
+      <span class="val b" id="m-step">0 / 199</span>
+    </div>
   </div>
 
+  <!-- Progress bar -->
   <div id="progbar"><div id="progfill"></div></div>
 
-  <div id="controls">
-    <button id="btnPlay">&#9654; Play</button>
-    <button id="btnStepBack" title="Step back one frame">‹</button>
-    <button id="btnStepFwd" title="Step forward one frame">›</button>
-    <button id="btnSpeed">1×</button>
-    <span id="phaseLabel">Standby</span>
-    <input type="range" id="scrubber" min="0" max="199" value="0">
-    <span id="stepLabel">0 / 199</span>
-    <button id="btnReset">Reset View</button>
+  <!-- Phase display: prominent label above controls -->
+  <div id="phaseDisplay">
+    <div class="phase-pill">
+      <div class="phase-dot idle" id="phaseDot"></div>
+      <span id="phaseText">Standby</span>
+    </div>
   </div>
+
+  <!-- Controls: grouped clusters -->
+  <div id="controls">
+    <div class="ctrl-group">
+      <button id="btnPlay">▶ Play</button>
+      <button id="btnStepBack" title="Step back one frame">‹</button>
+      <button id="btnStepFwd" title="Step forward one frame">›</button>
+    </div>
+    <div class="ctrl-sep"></div>
+    <div class="ctrl-group">
+      <button id="btnSpeed">1×</button>
+    </div>
+    <div class="ctrl-sep"></div>
+    <input type="range" id="scrubber" min="0" max="199" value="0">
+    <div class="ctrl-sep"></div>
+    <div class="ctrl-group">
+      <span id="elapsedLabel">— paused —</span>
+      <button id="btnReset">⌖ View</button>
+    </div>
+  </div>
+
 </div>
 
 <script type="importmap">
@@ -159,10 +350,9 @@ const HA_LEN    = 0.07;
 
 const TABLE_SURF  = 0.80;
 const SHELF_Y     = 0.92;
-const WRIST_FLOOR = 0.90;   // minimum wrist Y (prevents finger clipping)
-const SH_Y        = 1.05;   // shoulder height
+const WRIST_FLOOR = 0.96;
+const SH_Y        = 1.05;
 
-// Shoulder world positions (active arm only)
 const SH_A = new THREE.Vector3(-0.18, SH_Y, 0);
 const SH_B = new THREE.Vector3( 0.18, SH_Y, 0);
 
@@ -174,21 +364,36 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
+renderer.toneMappingExposure = 1.08;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x06080e);
-scene.fog = new THREE.FogExp2(0x060810, 0.22);
+scene.fog = new THREE.FogExp2(0x060810, 0.16); // lighter fog — more depth without obscuring
 
-// ── Camera ────────────────────────────────────────────────────────────────────
-const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.05, 20);
-camera.position.set(1.40, 1.55, 1.90);
+// ── Camera (closer crop — arms fill the frame) ────────────────────────────────
+const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.05, 20);
+camera.position.set(0.86, 1.23, 1.44);
 const orbit = new OrbitControls(camera, renderer.domElement);
-orbit.target.set(0, 0.85, 0.22);
+orbit.target.set(0, 0.90, 0.28);
 orbit.minDistance = 0.5; orbit.maxDistance = 6;
 orbit.update();
 const CAM0_P = camera.position.clone();
 const CAM0_T = orbit.target.clone();
+
+// Track idle angle for camera drift
+let idleAngle = Math.atan2(
+  camera.position.x - orbit.target.x,
+  camera.position.z - orbit.target.z
+);
+let isOrbiting = false;
+orbit.addEventListener('start', () => { isOrbiting = true; });
+orbit.addEventListener('end', () => {
+  isOrbiting = false;
+  idleAngle = Math.atan2(
+    camera.position.x - orbit.target.x,
+    camera.position.z - orbit.target.z
+  );
+});
 
 // ── Lights ────────────────────────────────────────────────────────────────────
 scene.add(new THREE.AmbientLight(0x7080a8, 0.30));
@@ -202,20 +407,16 @@ sun.shadow.camera.top  =  3.0; sun.shadow.camera.bottom = -0.5;
 sun.shadow.camera.near = 0.1;  sun.shadow.camera.far = 10;
 scene.add(sun);
 
-// Industrial pendant spotlights over work cell
 function addSpot(x, y, z, tx, ty, tz, col, intensity) {
   const s = new THREE.SpotLight(col, intensity, 5, Math.PI / 6, 0.5);
-  s.position.set(x, y, z);
-  s.castShadow = false;
-  scene.add(s);
-  scene.add(s.target);
+  s.position.set(x, y, z); s.castShadow = false;
+  scene.add(s); scene.add(s.target);
   s.target.position.set(tx, ty, tz);
 }
 addSpot(-0.5, 2.6,  0.25,  -0.3, 0.85, 0.30, 0xb0c8ff, 2.0);
 addSpot( 0.5, 2.6,  0.25,   0.3, 0.85, 0.30, 0xb0c8ff, 2.0);
 addSpot( 0.0, 2.6,  0.45,   0.0, 0.85, 0.38, 0xfff5e0, 1.6);
 
-// Rim light from behind robots
 const rimL = new THREE.DirectionalLight(0x2050ff, 0.35);
 rimL.position.set(-1.5, 1.8, -1.0); scene.add(rimL);
 const rimR = new THREE.DirectionalLight(0x2050ff, 0.25);
@@ -228,22 +429,18 @@ function mk(col, rough, metal, emCol = 0, emInt = 0) {
   return new THREE.MeshStandardMaterial(p);
 }
 
-// ── Figure 03 palette ─────────────────────────────────────────────────────────
-// Figure 03 has soft off-white/cream fabric-textile exterior, dark charcoal joint rings,
-// a wide horizontal camera sensor bar across the face, and no exposed wiring.
 const M = {
-  fabric:   mk(0xd8d5cf, 0.90, 0.02),           // cream-white soft textile
-  fabric2:  mk(0xccc8c2, 0.88, 0.03),           // very slightly darker panels (depth)
-  joint:    mk(0x18191e, 0.55, 0.72),            // near-black charcoal joint rings
-  dark:     mk(0x11131a, 0.48, 0.78),            // structural dark inner
-  visor:    mk(0x06080e, 0.04, 0.04, 0x0055ff, 1.5),   // wide camera strip
-  led_b:    mk(0x0040cc, 0.15, 0.05, 0x0088ff, 2.8),   // blue status LED
-  led_o:    mk(0xcc4400, 0.15, 0.05, 0xff7700, 2.0),   // orange accent
-  arm_fp16: mk(0xc0ccdc, 0.88, 0.03),           // FP16 arm: pale blue-grey fabric
-  arm_comp: mk(0xdcc8b4, 0.88, 0.03),           // χ=64 arm: pale warm-cream fabric
-  jnt_fp16: mk(0x142248, 0.48, 0.80, 0x1a3aff, 0.4),  // deep blue joint
-  jnt_comp: mk(0x3a1408, 0.48, 0.80, 0xff5500, 0.3),  // deep orange joint
-
+  fabric:   mk(0xd8d5cf, 0.90, 0.02),
+  fabric2:  mk(0xccc8c2, 0.88, 0.03),
+  joint:    mk(0x18191e, 0.55, 0.72),
+  dark:     mk(0x11131a, 0.48, 0.78),
+  visor:    mk(0x06080e, 0.04, 0.04, 0x0055ff, 1.5),
+  led_b:    mk(0x0040cc, 0.15, 0.05, 0x0088ff, 2.8),
+  led_o:    mk(0xcc4400, 0.15, 0.05, 0xff7700, 2.0),
+  arm_fp16: mk(0xc0ccdc, 0.88, 0.03),
+  arm_comp: mk(0xdcc8b4, 0.88, 0.03),
+  jnt_fp16: mk(0x142248, 0.48, 0.80, 0x1a3aff, 0.4),
+  jnt_comp: mk(0x3a1408, 0.48, 0.80, 0xff5500, 0.3),
   floor:    mk(0x0a0c12, 0.96, 0.02),
   concrete: mk(0x0e1018, 0.88, 0.06),
   pillar:   mk(0x0c0e16, 0.40, 0.86),
@@ -252,138 +449,111 @@ const M = {
   table:    mk(0x282c3c, 0.55, 0.65),
   table2:   mk(0x1c2030, 0.60, 0.72),
   shelf:    mk(0x1a1e2c, 0.62, 0.50),
-  safety:   mk(0xf0b400, 0.78, 0.00),
-  hv:       mk(0xf0b400, 0.70, 0.02, 0xf0b400, 0.4),   // HV warning stripe
-
-  // EV battery components
-  tray:     mk(0x1c2030, 0.62, 0.60),           // battery pack enclosure
-  tray_rib: mk(0x141820, 0.58, 0.75),           // internal ribs
+  // Safety markings: boosted emissive for high contrast + legend visibility
+  safety:   mk(0xf0c000, 0.70, 0.01, 0xffcc00, 0.55),
+  hv:       mk(0xf0b400, 0.70, 0.02, 0xf0b400, 0.4),
+  tray:     mk(0x1c2030, 0.62, 0.60),
+  tray_rib: mk(0x141820, 0.58, 0.75),
   tray_bot: mk(0x22263a, 0.65, 0.55),
-  cell_a:   mk(0x2c3c60, 0.52, 0.48),           // prismatic cell module A (steel blue)
-  cell_b:   mk(0x243050, 0.52, 0.48),           // prismatic cell module B (deeper blue)
-  cool_plt: mk(0x6c8090, 0.28, 0.86),           // aluminium cooling plate
-  bms:      mk(0x1c1c28, 0.60, 0.44),           // BMS cover
-  bms_led:  mk(0x00cc44, 0.20, 0.10, 0x00ff55, 2.0),   // BMS status LED
-  terminal: mk(0xd0a000, 0.30, 0.80),           // HV terminal connectors
+  cell_a:   mk(0x2c3c60, 0.52, 0.48),
+  cell_b:   mk(0x243050, 0.52, 0.48),
+  cool_plt: mk(0x6c8090, 0.28, 0.86),
+  bms:      mk(0x1c1c28, 0.60, 0.44),
+  bms_led:  mk(0x00cc44, 0.20, 0.10, 0x00ff55, 2.0),
+  terminal: mk(0xd0a000, 0.30, 0.80),
 };
-// Fix the invalid color literal above
-M.fabric2 = mk(0xccc8c2, 0.88, 0.03);
 
 // ── Scene construction helpers ────────────────────────────────────────────────
 function box(w, h, d, mat, x, y, z, shadow = true) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
   m.position.set(x, y, z);
   if (shadow) { m.castShadow = true; m.receiveShadow = true; }
-  scene.add(m);
-  return m;
+  scene.add(m); return m;
 }
 function cyl(rt, rb, h, segs, mat, x, y, z, shadow = true) {
   const m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, segs), mat);
   m.position.set(x, y, z);
   if (shadow) { m.castShadow = true; m.receiveShadow = true; }
-  scene.add(m);
-  return m;
+  scene.add(m); return m;
 }
 function sph(r, mat, x, y, z) {
   const m = new THREE.Mesh(new THREE.SphereGeometry(r, 14, 10), mat);
-  m.position.set(x, y, z);
-  scene.add(m);
-  return m;
+  m.position.set(x, y, z); scene.add(m); return m;
 }
 
 // ── Floor ─────────────────────────────────────────────────────────────────────
 const floorM = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), M.floor);
-floorM.rotation.x = -Math.PI / 2;
-floorM.receiveShadow = true;
-scene.add(floorM);
-
+floorM.rotation.x = -Math.PI / 2; floorM.receiveShadow = true; scene.add(floorM);
 const grid = new THREE.GridHelper(8, 40, 0x141828, 0x0e1020);
-grid.position.y = 0.001;
-scene.add(grid);
+grid.position.y = 0.001; scene.add(grid);
 
-// Yellow safety chevrons around work cell
-function stripe(x, z, w, d) {
-  box(w, 0.003, d, M.safety, x, 0.002, z, false);
+// ── Ground-plane AO discs (fake contact shadows) ──────────────────────────────
+function aoDisc(x, z, r, opacity) {
+  const m = new THREE.Mesh(
+    new THREE.CircleGeometry(r, 28),
+    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity, depthWrite: false })
+  );
+  m.rotation.x = -Math.PI / 2; m.position.set(x, 0.004, z); scene.add(m);
 }
-// Cell boundary stripes
+aoDisc(-0.18, 0,    0.14, 0.55); // under left mount
+aoDisc( 0.18, 0,    0.14, 0.55); // under right mount
+aoDisc(  0.0, 0.36, 0.42, 0.38); // under table
+
+// ── Yellow safety chevrons (bright, high-contrast) ────────────────────────────
+function stripe(x, z, w, d) { box(w, 0.003, d, M.safety, x, 0.002, z, false); }
 stripe( 0,  0.78, 1.60, 0.04);
 stripe( 0, -0.72, 1.60, 0.04);
 stripe( 0.85, 0.04, 0.04, 1.50);
 stripe(-0.85, 0.04, 0.04, 1.50);
-// Corner brackets
-for (const [sx, sz] of [[-0.83, 0.76],[0.83, 0.76],[-0.83,-0.70],[0.83,-0.70]]) {
-  stripe(sx, sz, 0.12, 0.04);
-  stripe(sx, sz, 0.04, 0.12);
+for (const [sx, sz] of [[-0.83,0.76],[0.83,0.76],[-0.83,-0.70],[0.83,-0.70]]) {
+  stripe(sx, sz, 0.12, 0.04); stripe(sx, sz, 0.04, 0.12);
 }
-// HV zone arc (partial chevrons toward assembly table)
-for (let i = -2; i <= 2; i++) {
-  stripe(i * 0.14, 0.60, 0.08, 0.03);
-}
+for (let i = -2; i <= 2; i++) { stripe(i * 0.14, 0.60, 0.08, 0.03); }
 
 // ── Structural pillars & gantry ───────────────────────────────────────────────
-for (const [px, pz] of [[-0.72, 0.80],[0.72, 0.80],[-0.72,-0.60],[0.72,-0.60]]) {
+for (const [px, pz] of [[-0.72,0.80],[0.72,0.80],[-0.72,-0.60],[0.72,-0.60]])
   cyl(0.032, 0.036, 3.0, 8, M.pillar, px, 1.5, pz);
-}
-// Horizontal crossbeam
 box(1.56, 0.05, 0.05, M.gantry, 0, 2.68, 0.10);
 box(0.05, 0.05, 0.88, M.gantry, -0.78, 2.68, 0.40);
 box(0.05, 0.05, 0.88, M.gantry,  0.78, 2.68, 0.40);
-// Pendant lamp housings
 for (const px of [-0.45, 0, 0.45]) {
   cyl(0.06, 0.07, 0.08, 8, M.gantry, px, 2.62, 0.30, false);
   box(0.10, 0.012, 0.10, M.lbar, px, 2.575, 0.30, false);
 }
-// Overhead cable tray
 box(1.40, 0.02, 0.12, M.gantry, 0, 2.40, -0.10);
 
 // ── Assembly Table ────────────────────────────────────────────────────────────
-// Worktop
 box(0.80, 0.04, 0.58, M.table, 0, TABLE_SURF - 0.02, 0.36);
-// Legs
-for (const [lx, lz] of [[-0.35,0.10],[0.35,0.10],[-0.35,0.62],[0.35,0.62]]) {
+for (const [lx, lz] of [[-0.35,0.10],[0.35,0.10],[-0.35,0.62],[0.35,0.62]])
   box(0.04, TABLE_SURF - 0.04, 0.04, M.table2, lx, (TABLE_SURF - 0.04) / 2, lz);
-}
-// Lower shelf rail
 box(0.74, 0.02, 0.52, M.table2, 0, 0.38, 0.36);
-// Table edge accent strip (LED underglow effect on front edge)
-const tableEdge = new THREE.Mesh(new THREE.BoxGeometry(0.80, 0.006, 0.006), mk(0x0055ff, 0.2, 0.1, 0x0066ff, 1.8));
-tableEdge.position.set(0, TABLE_SURF - 0.04, 0.09);
-scene.add(tableEdge);
+const tableEdge = new THREE.Mesh(
+  new THREE.BoxGeometry(0.80, 0.006, 0.006),
+  mk(0x0055ff, 0.2, 0.1, 0x0066ff, 1.8)
+);
+tableEdge.position.set(0, TABLE_SURF - 0.04, 0.09); scene.add(tableEdge);
 
-// ── Battery Pack Tray (pre-positioned on table) ───────────────────────────────
+// ── Battery Pack Tray ─────────────────────────────────────────────────────────
 const TRAY_W = 0.64, TRAY_H = 0.12, TRAY_D = 0.44;
-const TRAY_Y = TABLE_SURF + TRAY_H / 2;
-const TRAY_Z = 0.36;
-
-// Outer enclosure
+const TRAY_Y = TABLE_SURF + TRAY_H / 2, TRAY_Z = 0.36;
 box(TRAY_W, TRAY_H, TRAY_D, M.tray, 0, TRAY_Y, TRAY_Z);
-// Internal bay divider (centre rib)
 box(0.010, TRAY_H - 0.01, TRAY_D - 0.02, M.tray_rib, 0, TRAY_Y, TRAY_Z);
-// Bottom floor plate (aluminium colour)
 box(TRAY_W - 0.02, 0.006, TRAY_D - 0.02, M.cool_plt, 0, TABLE_SURF + 0.003, TRAY_Z);
-// HV warning stripes on front face
-for (const ox of [-0.22, 0, 0.22]) {
+for (const ox of [-0.22, 0, 0.22])
   box(0.06, 0.018, 0.006, M.hv, ox, TRAY_Y + 0.02, TRAY_Z - TRAY_D / 2 - 0.001);
-}
-// HV triangle warning (simulated as small yellow box)
 box(0.040, 0.035, 0.004, M.hv, -0.24, TRAY_Y + 0.03, TRAY_Z + TRAY_D / 2 + 0.001);
 box(0.040, 0.035, 0.004, M.hv,  0.24, TRAY_Y + 0.03, TRAY_Z + TRAY_D / 2 + 0.001);
-// HV terminal connectors
 cyl(0.014, 0.014, 0.025, 8, M.terminal, -0.28, TRAY_Y + 0.06, TRAY_Z - 0.18, false);
 cyl(0.014, 0.014, 0.025, 8, M.terminal,  0.28, TRAY_Y + 0.06, TRAY_Z - 0.18, false);
 
 // ── Supply Shelves ────────────────────────────────────────────────────────────
 function addShelf(x, z) {
-  // shelf top
   box(0.32, 0.022, 0.26, M.shelf, x, SHELF_Y - 0.011, z);
-  // uprights
   for (const dx of [-0.13, 0.13]) {
     box(0.022, SHELF_Y, 0.022, M.dark, x + dx, SHELF_Y / 2, z - 0.10);
     box(0.022, SHELF_Y, 0.022, M.dark, x + dx, SHELF_Y / 2, z + 0.10);
   }
-  // back bar
   box(0.022, 0.22, 0.022, M.dark, x, SHELF_Y - 0.11, z - 0.11);
-  // shelf label strip
   box(0.28, 0.008, 0.004, M.hv, x, SHELF_Y + 0.005, z + 0.12);
 }
 addShelf(-0.46, 0.24);
@@ -391,37 +561,29 @@ addShelf( 0.46, 0.24);
 
 // ── EV Battery Component Meshes ───────────────────────────────────────────────
 const CELL_W = 0.22, CELL_H = 0.09, CELL_D = 0.14;
-
-// Shelf rest positions (centre of part at shelf surface + half-height)
 const POS_MA_SHELF = new THREE.Vector3(-0.46, SHELF_Y + CELL_H / 2 + 0.002, 0.20);
 const POS_MB_SHELF = new THREE.Vector3( 0.46, SHELF_Y + CELL_H / 2 + 0.002, 0.20);
-const POS_CP_SHELF = new THREE.Vector3(-0.46, SHELF_Y + 0.003 + 0.003, 0.06);  // flat plate
-const POS_BM_SHELF = new THREE.Vector3( 0.46, SHELF_Y + 0.015 + 0.002, 0.06); // thin cover
-
-// Assembled positions (inside tray)
+const POS_CP_SHELF = new THREE.Vector3(-0.46, SHELF_Y + 0.003 + 0.003, 0.06);
+const POS_BM_SHELF = new THREE.Vector3( 0.46, SHELF_Y + 0.015 + 0.002, 0.06);
 const POS_MA_ASSEM = new THREE.Vector3(-0.14, TRAY_Y - TRAY_H / 2 + CELL_H / 2 + 0.004, TRAY_Z);
 const POS_MB_ASSEM = new THREE.Vector3( 0.14, TRAY_Y - TRAY_H / 2 + CELL_H / 2 + 0.004, TRAY_Z);
-const POS_CP_ASSEM = new THREE.Vector3( 0.00, TRAY_Y + TRAY_H / 2 + 0.003, TRAY_Z);         // on top
-const POS_BM_ASSEM = new THREE.Vector3( 0.00, TRAY_Y + TRAY_H / 2 + 0.006 + 0.015, TRAY_Z); // on top of plate
+const POS_CP_ASSEM = new THREE.Vector3( 0.00, TRAY_Y + TRAY_H / 2 + 0.003, TRAY_Z);
+const POS_BM_ASSEM = new THREE.Vector3( 0.00, TRAY_Y + TRAY_H / 2 + 0.006 + 0.015, TRAY_Z);
 
-// Cell Module A — prismatic cell block with terminal tabs
 const modA = new THREE.Group(); scene.add(modA); modA.position.copy(POS_MA_SHELF);
 {
   const body = new THREE.Mesh(new THREE.BoxGeometry(CELL_W, CELL_H, CELL_D), M.cell_a);
   body.castShadow = true; modA.add(body);
-  // Terminal tabs (top)
   for (const tx of [-0.06, 0.06]) {
     const tab = new THREE.Mesh(new THREE.BoxGeometry(0.030, 0.014, 0.020), M.terminal);
     tab.position.set(tx, CELL_H / 2 + 0.007, -0.02); modA.add(tab);
   }
-  // Cell face lines (visual only)
   for (let i = -1; i <= 1; i++) {
     const line = new THREE.Mesh(new THREE.BoxGeometry(0.003, CELL_H - 0.01, CELL_D - 0.01), M.tray_rib);
     line.position.x = i * 0.065; modA.add(line);
   }
 }
 
-// Cell Module B
 const modB = new THREE.Group(); scene.add(modB); modB.position.copy(POS_MB_SHELF);
 {
   const body = new THREE.Mesh(new THREE.BoxGeometry(CELL_W, CELL_H, CELL_D), M.cell_b);
@@ -436,100 +598,65 @@ const modB = new THREE.Group(); scene.add(modB); modB.position.copy(POS_MB_SHELF
   }
 }
 
-// Cooling Plate — thin aluminium plate with flow channels
 const coolPlate = new THREE.Group(); scene.add(coolPlate); coolPlate.position.copy(POS_CP_SHELF);
 {
   const plate = new THREE.Mesh(new THREE.BoxGeometry(TRAY_W - 0.02, 0.006, TRAY_D - 0.02), M.cool_plt);
   plate.castShadow = true; coolPlate.add(plate);
-  // Flow channel ribs
   for (let i = -2; i <= 2; i++) {
     const rib = new THREE.Mesh(new THREE.BoxGeometry(TRAY_W - 0.04, 0.003, 0.008), M.cool_plt);
     rib.position.set(0, 0.0045, i * 0.076); coolPlate.add(rib);
   }
-  // Inlet/outlet ports
   for (const ex of [-0.28, 0.28]) {
-    cyl(0.010, 0.010, 0.018, 8, M.dark, ex, 0.012, 0); // will be reparented later — just visual
     const port = new THREE.Mesh(new THREE.CylinderGeometry(0.010, 0.010, 0.018, 8), M.dark);
     port.position.set(ex, 0.012, 0); coolPlate.add(port);
   }
 }
 
-// BMS Cover — black plastic lid with status LED
 const bmsCover = new THREE.Group(); scene.add(bmsCover); bmsCover.position.copy(POS_BM_SHELF);
 {
   const lid = new THREE.Mesh(new THREE.BoxGeometry(TRAY_W - 0.02, 0.030, TRAY_D - 0.02), M.bms);
   lid.castShadow = true; bmsCover.add(lid);
-  // Connector block
   const conn = new THREE.Mesh(new THREE.BoxGeometry(0.060, 0.020, 0.040), M.dark);
   conn.position.set(-0.24, 0.025, 0); bmsCover.add(conn);
-  // Status LED strip
   const ledRow = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.008, 0.008), M.bms_led);
   ledRow.position.set(0.08, 0.022, 0); bmsCover.add(ledRow);
 }
 
 // ── Industrial Arm Mount ──────────────────────────────────────────────────────
-// Floor-anchored pedestal column that the kinematic arm attaches to.
 function buildMount(xOff) {
-  const g = new THREE.Group();
-  g.position.set(xOff, 0, 0);
-  scene.add(g);
-
+  const g = new THREE.Group(); g.position.set(xOff, 0, 0); scene.add(g);
   function add(m) { m.castShadow = true; m.receiveShadow = true; g.add(m); return m; }
   function bx(w,h,d,mat,x,y,z) { const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); m.position.set(x,y,z); return add(m); }
   function cy(rt,rb,h,seg,mat,x,y,z) { const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg),mat); m.position.set(x,y,z); return add(m); }
-
-  // Anchor plate bolted to floor
   bx(0.22, 0.028, 0.22, M.dark, 0, 0.014, 0);
-  // Corner bolt heads
   for (const [bx_, bz_] of [[-0.08,-0.08],[-0.08,0.08],[0.08,-0.08],[0.08,0.08]])
     cy(0.009, 0.009, 0.022, 8, M.joint, bx_, 0.029, bz_);
-
-  // Main column
   cy(0.034, 0.038, 0.98, 12, M.dark, 0, 0.51, 0);
-  // Mid-column reinforcement collar
   cy(0.050, 0.050, 0.024, 12, M.joint, 0, 0.52, 0);
-  // Cable conduit strip running up back of column
   bx(0.014, 0.88, 0.010, M.joint, 0, 0.51, -0.030);
-
-  // Top mounting yoke
   bx(0.090, 0.065, 0.060, M.dark, 0, SH_Y, 0);
-  bx(0.016, 0.054, 0.060, M.joint, -0.053, SH_Y, 0); // left ear
-  bx(0.016, 0.054, 0.060, M.joint,  0.053, SH_Y, 0); // right ear
-  // Status LED ring just below yoke
+  bx(0.016, 0.054, 0.060, M.joint, -0.053, SH_Y, 0);
+  bx(0.016, 0.054, 0.060, M.joint,  0.053, SH_Y, 0);
   cy(0.044, 0.044, 0.007, 12, M.led_b, 0, SH_Y - 0.040, 0);
 }
-
-buildMount(-0.18); // left arm pedestal
-buildMount( 0.18); // right arm pedestal
+buildMount(-0.18);
+buildMount( 0.18);
 
 // ── Arm builder ───────────────────────────────────────────────────────────────
 function buildArm(armMat, jntMat) {
-  const g = new THREE.Group();
-  scene.add(g);
-
+  const g = new THREE.Group(); scene.add(g);
   const j_sh = new THREE.Group(); g.add(j_sh);
-
-  // Upper arm
   const ua = new THREE.Mesh(new THREE.CylinderGeometry(0.030, 0.026, UA_LEN - 0.02, 8), armMat);
-  ua.position.y = -(UA_LEN - 0.02) / 2;
-  ua.castShadow = true; j_sh.add(ua);
-  j_sh.add(new THREE.Mesh(new THREE.SphereGeometry(0.034, 12, 10), jntMat)); // shoulder ball
-
+  ua.position.y = -(UA_LEN - 0.02) / 2; ua.castShadow = true; j_sh.add(ua);
+  j_sh.add(new THREE.Mesh(new THREE.SphereGeometry(0.034, 12, 10), jntMat));
   const j_el = new THREE.Group(); j_el.position.y = -UA_LEN; j_sh.add(j_el);
-  j_el.add(new THREE.Mesh(new THREE.SphereGeometry(0.026, 10, 8), jntMat)); // elbow
-
+  j_el.add(new THREE.Mesh(new THREE.SphereGeometry(0.026, 10, 8), jntMat));
   const fa = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.020, FA_LEN - 0.01, 8), armMat);
-  fa.position.y = -(FA_LEN - 0.01) / 2;
-  fa.castShadow = true; j_el.add(fa);
-
+  fa.position.y = -(FA_LEN - 0.01) / 2; fa.castShadow = true; j_el.add(fa);
   const j_wr = new THREE.Group(); j_wr.position.y = -FA_LEN; j_el.add(j_wr);
-  j_wr.add(new THREE.Mesh(new THREE.SphereGeometry(0.020, 10, 8), jntMat)); // wrist
-
-  // Palm
+  j_wr.add(new THREE.Mesh(new THREE.SphereGeometry(0.020, 10, 8), jntMat));
   const palm = new THREE.Mesh(new THREE.BoxGeometry(0.060, 0.046, 0.036), armMat);
   palm.position.set(0, -0.023, 0); palm.castShadow = true; j_wr.add(palm);
-
-  // Fingers (two groups)
   const f1 = new THREE.Group(); f1.position.set( 0.020, -0.056, 0);
   const f2 = new THREE.Group(); f2.position.set(-0.020, -0.056, 0);
   for (const f of [f1, f2]) {
@@ -537,41 +664,29 @@ function buildArm(armMat, jntMat) {
     fi.position.y = -0.018; fi.castShadow = true; f.add(fi);
     j_wr.add(f);
   }
-
   const j_tip = new THREE.Group(); j_tip.position.y = -HA_LEN; j_wr.add(j_tip);
-
-  // Shoulder pad
   const shPad = new THREE.Mesh(new THREE.SphereGeometry(0.048, 12, 10), M.fabric);
   g.add(shPad);
-
   return { g, j_sh, j_el, j_wr, j_tip, f1, f2, shPad };
 }
 
-// ── IK Solver (sagittal plane, forward-elbow biomechanics) ────────────────────
+// ── IK Solver ─────────────────────────────────────────────────────────────────
 function solveIK(tip, shoulder) {
-  const dx = tip.x - shoulder.x;
-  const dy = tip.y - shoulder.y;
-  const dz = tip.z - shoulder.z;
-
+  const dx = tip.x - shoulder.x, dy = tip.y - shoulder.y, dz = tip.z - shoulder.z;
   const sy = Math.atan2(dx, dz);
-  const A = dy;
-  const B = Math.sqrt(dx * dx + dz * dz);
+  const A = dy, B = Math.sqrt(dx * dx + dz * dz);
   const rawR = Math.sqrt(dx * dx + dy * dy + dz * dz);
   const r = Math.max(Math.abs(UA_LEN - FA_LEN) + 0.001, Math.min(UA_LEN + FA_LEN - 0.001, rawR));
-
-  const cy = -(UA_LEN * UA_LEN + r * r - FA_LEN * FA_LEN) / (2 * UA_LEN);
+  const cy2 = -(UA_LEN * UA_LEN + r * r - FA_LEN * FA_LEN) / (2 * UA_LEN);
   const phi = Math.atan2(B, A);
-  const acosTerm = Math.acos(Math.max(-1, Math.min(1, cy / r)));
-
+  const acosTerm = Math.acos(Math.max(-1, Math.min(1, cy2 / r)));
   const sp1 = acosTerm - phi, sp2 = -acosTerm - phi;
   const dz1 = B * Math.cos(sp1) + A * Math.sin(sp1);
   const dz2 = B * Math.cos(sp2) + A * Math.sin(sp2);
-  const sp = dz1 > dz2 ? sp1 : sp2; // forward-elbow: choose +dPrimeZ branch
-
+  const sp = dz1 > dz2 ? sp1 : sp2;
   const dPrimeY = A * Math.cos(sp) - B * Math.sin(sp);
   const dPrimeZ = B * Math.cos(sp) + A * Math.sin(sp);
   const ef = Math.atan2(+dPrimeZ / FA_LEN, -(UA_LEN + dPrimeY) / FA_LEN);
-
   return [sp, sy, ef];
 }
 
@@ -586,78 +701,51 @@ function applyPose(arm, sp, sy, ef, grip) {
 
 function positionArm(arm, shoulder, zOff) {
   const pos = shoulder.clone(); pos.z += zOff;
-  arm.g.position.copy(pos);
-  arm.shPad.position.copy(pos);
+  arm.g.position.copy(pos); arm.shPad.position.copy(pos);
 }
 
-// z-offset separates the FP16 and compressed arm pairs visually
 const Z_OFF = 0.040;
 const ARM_A_BASE = buildArm(M.arm_fp16, M.jnt_fp16);
 const ARM_A_COMP = buildArm(M.arm_comp, M.jnt_comp);
 const ARM_B_BASE = buildArm(M.arm_fp16, M.jnt_fp16);
 const ARM_B_COMP = buildArm(M.arm_comp, M.jnt_comp);
-
 positionArm(ARM_A_BASE, SH_A, -Z_OFF);
 positionArm(ARM_A_COMP, SH_A,  Z_OFF);
 positionArm(ARM_B_BASE, SH_B, -Z_OFF);
 positionArm(ARM_B_COMP, SH_B,  Z_OFF);
 
 // ── Waypoints ─────────────────────────────────────────────────────────────────
-// [u, tipX, tipY, tipZ, grip]   grip: 0.28=open, -0.12=closed
-// All positions verified to be within UA+FA=0.60m reach of their shoulder
-
 const WP_A = [
-  [0.00, -0.18, 0.92, 0.08,  0.28], // standby — arm at side
-  [0.06, -0.46, 1.02, 0.20,  0.28], // rise to shelf approach
-  [0.15, -0.46, 0.97, 0.20,  0.28], // hover above Module A
-  [0.22, -0.46, 0.93, 0.20,  0.28], // descend to module
-  [0.27, -0.46, 0.93, 0.20, -0.12], // grip
-  [0.33, -0.46, 1.02, 0.20, -0.12], // lift clear of shelf
-  [0.47, -0.14, 1.02, 0.32, -0.12], // carry to above Bay 1
-  [0.54, -0.14, 0.92, 0.36, -0.12], // lower into tray bay 1
-  [0.59, -0.14, 0.92, 0.36,  0.28], // release
-  [0.65, -0.14, 1.02, 0.26,  0.28], // retract upward
-  [0.71, -0.46, 1.02, 0.06,  0.28], // transit to cooling plate
-  [0.79, -0.46, 0.93, 0.06,  0.28], // descend to plate
-  [0.84, -0.46, 0.93, 0.06, -0.12], // grip plate
-  [0.88, -0.46, 1.02, 0.06, -0.12], // lift plate
-  [0.94, -0.04, 1.01, 0.36, -0.12], // carry to above tray
-  [0.97, -0.04, 0.93, 0.36, -0.12], // lower onto cell tops
-  [0.98, -0.04, 0.93, 0.36,  0.28], // release
-  [1.00, -0.18, 0.92, 0.08,  0.28], // return standby
+  [0.00, -0.18, 0.96, 0.08,  0.28],[0.06, -0.46, 1.05, 0.20,  0.28],
+  [0.15, -0.46, 1.04, 0.20,  0.28],[0.22, -0.46, 1.00, 0.20,  0.28],
+  [0.27, -0.46, 1.00, 0.20, -0.12],[0.33, -0.46, 1.05, 0.20, -0.12],
+  [0.47, -0.14, 1.05, 0.32, -0.12],[0.54, -0.14, 0.99, 0.36, -0.12],
+  [0.59, -0.14, 0.99, 0.36,  0.28],[0.65, -0.14, 1.05, 0.26,  0.28],
+  [0.71, -0.46, 1.05, 0.06,  0.28],[0.79, -0.46, 1.00, 0.06,  0.28],
+  [0.84, -0.46, 1.00, 0.06, -0.12],[0.88, -0.46, 1.05, 0.06, -0.12],
+  [0.94, -0.04, 1.05, 0.36, -0.12],[0.97, -0.04, 0.99, 0.36, -0.12],
+  [0.98, -0.04, 0.99, 0.36,  0.28],[1.00, -0.18, 0.96, 0.08,  0.28],
 ];
-
 const WP_B = [
-  [0.00,  0.18, 0.92, 0.08,  0.28], // standby
-  [0.08,  0.46, 1.02, 0.20,  0.28], // approach right shelf
-  [0.17,  0.46, 0.97, 0.20,  0.28], // hover above Module B
-  [0.24,  0.46, 0.93, 0.20,  0.28], // descend
-  [0.29,  0.46, 0.93, 0.20, -0.12], // grip
-  [0.35,  0.46, 1.02, 0.20, -0.12], // lift
-  [0.49,  0.14, 1.02, 0.32, -0.12], // carry to Bay 2
-  [0.56,  0.14, 0.92, 0.36, -0.12], // lower
-  [0.61,  0.14, 0.92, 0.36,  0.28], // release
-  [0.67,  0.14, 1.02, 0.26,  0.28], // retract
-  [0.73,  0.46, 1.02, 0.06,  0.28], // transit to BMS cover
-  [0.81,  0.46, 0.93, 0.06,  0.28], // descend
-  [0.86,  0.46, 0.93, 0.06, -0.12], // grip
-  [0.90,  0.46, 1.02, 0.06, -0.12], // lift
-  [0.95,  0.06, 1.01, 0.36, -0.12], // carry to tray
-  [0.98,  0.06, 0.96, 0.36, -0.12], // lower onto cooling plate
-  [0.99,  0.06, 0.96, 0.36,  0.28], // release
-  [1.00,  0.18, 0.92, 0.08,  0.28], // return
+  [0.00,  0.18, 0.96, 0.08,  0.28],[0.08,  0.46, 1.05, 0.20,  0.28],
+  [0.17,  0.46, 1.04, 0.20,  0.28],[0.24,  0.46, 1.00, 0.20,  0.28],
+  [0.29,  0.46, 1.00, 0.20, -0.12],[0.35,  0.46, 1.05, 0.20, -0.12],
+  [0.49,  0.14, 1.05, 0.32, -0.12],[0.56,  0.14, 0.99, 0.36, -0.12],
+  [0.61,  0.14, 0.99, 0.36,  0.28],[0.67,  0.14, 1.05, 0.26,  0.28],
+  [0.73,  0.46, 1.05, 0.06,  0.28],[0.81,  0.46, 1.00, 0.06,  0.28],
+  [0.86,  0.46, 1.00, 0.06, -0.12],[0.90,  0.46, 1.05, 0.06, -0.12],
+  [0.95,  0.06, 1.05, 0.36, -0.12],[0.98,  0.06, 1.00, 0.36, -0.12],
+  [0.99,  0.06, 1.00, 0.36,  0.28],[1.00,  0.18, 0.96, 0.08,  0.28],
 ];
 
 // ── Waypoint interpolation ────────────────────────────────────────────────────
 function coslerp(a, b, t) { return a + (b - a) * (1 - Math.cos(t * Math.PI)) * 0.5; }
-
 function sampleWP(u, WP) {
   let lo = WP[0], hi = WP[WP.length - 1];
   for (let i = 0; i < WP.length - 1; i++) {
     if (u >= WP[i][0] && u <= WP[i + 1][0]) { lo = WP[i]; hi = WP[i + 1]; break; }
   }
-  const span = hi[0] - lo[0];
-  const t = span < 1e-6 ? 0 : (u - lo[0]) / span;
+  const span = hi[0] - lo[0], t = span < 1e-6 ? 0 : (u - lo[0]) / span;
   return {
     tip: new THREE.Vector3(
       coslerp(lo[1], hi[1], t),
@@ -667,6 +755,48 @@ function sampleWP(u, WP) {
     grip: coslerp(lo[4], hi[4], t),
   };
 }
+
+// ── Drift trajectory lines — arm A baseline (blue) vs compressed (orange) ─────
+// These show the full-cycle 3D path for each model; positioned above workspace.
+const DRIFT_A = Array.from({ length: N_STEPS }, (_, i) =>
+  0.004 * Math.sin(i * 0.21 + 0.9) + 0.002 * Math.sin(i * 0.49 + 2.1));
+const DRIFT_B = Array.from({ length: N_STEPS }, (_, i) =>
+  0.004 * Math.sin(i * 0.17 + 0.6) + 0.002 * Math.sin(i * 0.53 + 1.7));
+
+const _basePts = [], _compPts = [];
+for (let i = 0; i < N_STEPS; i++) {
+  const u = i / (N_STEPS - 1);
+  const { tip } = sampleWP(u, WP_A);
+  const dA = DRIFT_A[i] || 0;
+  _basePts.push(tip.clone());
+  _compPts.push(new THREE.Vector3(
+    tip.x + dA,
+    Math.max(tip.y + dA * 0.4, WRIST_FLOOR),
+    tip.z
+  ));
+}
+
+const _matBase = new THREE.LineDashedMaterial({
+  color: 0x1a3aff, dashSize: 0.014, gapSize: 0.009, transparent: true, opacity: 0.40
+});
+const _matComp = new THREE.LineDashedMaterial({
+  color: 0xff5500, dashSize: 0.014, gapSize: 0.009, transparent: true, opacity: 0.40
+});
+const _trajBase = new THREE.Line(new THREE.BufferGeometry().setFromPoints(_basePts), _matBase);
+_trajBase.computeLineDistances(); scene.add(_trajBase);
+const _trajComp = new THREE.Line(new THREE.BufferGeometry().setFromPoints(_compPts), _matComp);
+_trajComp.computeLineDistances(); scene.add(_trajComp);
+
+// Moving cursors along trajectories (one sphere per model)
+const _cursorBase = new THREE.Mesh(
+  new THREE.SphereGeometry(0.011, 8, 6),
+  new THREE.MeshBasicMaterial({ color: 0x3a6aff })
+);
+const _cursorComp = new THREE.Mesh(
+  new THREE.SphereGeometry(0.011, 8, 6),
+  new THREE.MeshBasicMaterial({ color: 0xff6622 })
+);
+scene.add(_cursorBase); scene.add(_cursorComp);
 
 // ── Phase labels ──────────────────────────────────────────────────────────────
 function phaseA(u) {
@@ -681,24 +811,6 @@ function phaseA(u) {
   if (u < 0.98) return 'Arm A: Install cooling plate';
   return 'Arm A: Complete ✓';
 }
-function phaseB(u) {
-  if (u < 0.08) return 'Arm B: Standby';
-  if (u < 0.24) return 'Arm B: Approach Module B';
-  if (u < 0.29) return 'Arm B: Descend';
-  if (u < 0.35) return 'Arm B: Grip module';
-  if (u < 0.49) return 'Arm B: Transport → Bay 2';
-  if (u < 0.61) return 'Arm B: Insert Module B';
-  if (u < 0.73) return 'Arm B: Retract';
-  if (u < 0.86) return 'Arm B: Pick BMS cover';
-  if (u < 0.99) return 'Arm B: Install BMS cover';
-  return 'Arm B: Complete ✓';
-}
-
-// ── Compression drift (simulate χ=64 prediction jitter) ──────────────────────
-const DRIFT_A = Array.from({ length: N_STEPS }, (_, i) =>
-  0.004 * Math.sin(i * 0.21 + 0.9) + 0.002 * Math.sin(i * 0.49 + 2.1));
-const DRIFT_B = Array.from({ length: N_STEPS }, (_, i) =>
-  0.004 * Math.sin(i * 0.17 + 0.6) + 0.002 * Math.sin(i * 0.53 + 1.7));
 
 // ── Assembly state ────────────────────────────────────────────────────────────
 let maPlaced = false, mbPlaced = false, cpPlaced = false, bmPlaced = false;
@@ -711,50 +823,61 @@ function resetAssembly() {
   bmsCover.position.copy(POS_BM_SHELF);
 }
 
-function tick(id, done) {
+// Timeline tick — only sets CSS class, no innerHTML rewrite
+function tick(id, done, active) {
   const el = document.getElementById(id);
   if (!el) return;
-  const label = el.textContent.slice(2);
-  el.innerHTML = `<span class="ck">${done ? '☑' : '☐'}</span> ${label}`;
-  el.className = 'cl-item' + (done ? ' done' : '');
+  el.className = 'cl-step' + (done ? ' done' : active ? ' active' : '');
 }
 
 function updateAssembly(u, tipA, tipB) {
-  // Arm A carries modA (grip u≥0.27, release u≥0.59)
   const aCarryModA = u >= 0.27 && !maPlaced;
   const aCarryCP   = u >= 0.84 && !cpPlaced && maPlaced;
-  // Arm B carries modB (grip u≥0.29, release u≥0.61)
   const bCarryModB = u >= 0.29 && !mbPlaced;
   const bCarryBMS  = u >= 0.86 && !bmPlaced && mbPlaced;
 
-  if (aCarryModA && u < 0.59) {
+  if (aCarryModA && u < 0.59)
     modA.position.set(tipA.x, tipA.y - 0.03, tipA.z);
-  } else if (u >= 0.59 && !maPlaced) {
-    maPlaced = true; modA.position.copy(POS_MA_ASSEM);
-  }
+  else if (u >= 0.59 && !maPlaced) { maPlaced = true; modA.position.copy(POS_MA_ASSEM); }
 
-  if (bCarryModB && u < 0.61) {
+  if (bCarryModB && u < 0.61)
     modB.position.set(tipB.x, tipB.y - 0.03, tipB.z);
-  } else if (u >= 0.61 && !mbPlaced) {
-    mbPlaced = true; modB.position.copy(POS_MB_ASSEM);
-  }
+  else if (u >= 0.61 && !mbPlaced) { mbPlaced = true; modB.position.copy(POS_MB_ASSEM); }
 
-  if (aCarryCP && u < 0.98) {
+  if (aCarryCP && u < 0.98)
     coolPlate.position.set(tipA.x, tipA.y - 0.01, tipA.z);
-  } else if (u >= 0.98 && !cpPlaced && maPlaced) {
-    cpPlaced = true; coolPlate.position.copy(POS_CP_ASSEM);
-  }
+  else if (u >= 0.98 && !cpPlaced && maPlaced) { cpPlaced = true; coolPlate.position.copy(POS_CP_ASSEM); }
 
-  if (bCarryBMS && u < 0.99) {
+  if (bCarryBMS && u < 0.99)
     bmsCover.position.set(tipB.x, tipB.y - 0.01, tipB.z);
-  } else if (u >= 0.99 && !bmPlaced && mbPlaced) {
-    bmPlaced = true; bmsCover.position.copy(POS_BM_ASSEM);
-  }
+  else if (u >= 0.99 && !bmPlaced && mbPlaced) { bmPlaced = true; bmsCover.position.copy(POS_BM_ASSEM); }
 
-  tick('cl-ma', maPlaced);
-  tick('cl-mb', mbPlaced);
-  tick('cl-cp', cpPlaced);
-  tick('cl-bm', bmPlaced);
+  // Active highlighting: the step currently being executed
+  const actMA = !maPlaced && u > 0.05;
+  const actMB = !mbPlaced && u > 0.07;
+  const actCP = maPlaced && !cpPlaced && u > 0.65;
+  const actBM = mbPlaced && !bmPlaced && u > 0.67;
+
+  tick('cl-ma', maPlaced, actMA);
+  tick('cl-mb', mbPlaced, actMB);
+  tick('cl-cp', cpPlaced, actCP);
+  tick('cl-bm', bmPlaced, actBM);
+
+  // Checklist panel focus when a step is actively executing
+  const placing = actMA || actMB || actCP || actBM;
+  document.getElementById('checklist').className = placing ? 'active-focus' : '';
+}
+
+// ── Elapsed time / ETA ────────────────────────────────────────────────────────
+let playStartWall = 0;
+function updateElapsed(step) {
+  const el = document.getElementById('elapsedLabel');
+  if (!playing) { el.textContent = '— paused —'; return; }
+  const wall = (performance.now() - playStartWall) / 1000;
+  const stepsLeft = (N_STEPS - 1) - step;
+  const eta = stepsLeft / ((1000 / STEP_MS) * speed);
+  const fmt = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+  el.textContent = `${fmt(wall)} / ETA ${fmt(Math.max(0, eta))}`;
 }
 
 // ── Apply step ────────────────────────────────────────────────────────────────
@@ -763,9 +886,8 @@ function applyStep(step) {
   const { tip: tipA, grip: gripA } = sampleWP(u, WP_A);
   const { tip: tipB, grip: gripB } = sampleWP(u, WP_B);
 
-  // Compressed arm gets small drift offset
   const dA = DRIFT_A[step] || 0, dB = DRIFT_B[step] || 0;
-  const tipA_c = tipA.clone().addScalar(0).setX(tipA.x + dA).setY(tipA.y + dA * 0.4);
+  const tipA_c = tipA.clone().setX(tipA.x + dA).setY(tipA.y + dA * 0.4);
   const tipB_c = tipB.clone().setX(tipB.x + dB).setY(tipB.y + dB * 0.4);
 
   const [spA,  syA,  efA]  = solveIK(tipA,   SH_A);
@@ -780,19 +902,34 @@ function applyStep(step) {
 
   updateAssembly(u, tipA, tipB);
 
-  // HUD
+  // Update trajectory cursors
+  _cursorBase.position.copy(tipA);
+  _cursorComp.position.copy(tipA_c);
+
+  // HUD updates
   const pct = Math.round(u * 100);
   const fill = document.getElementById('progfill');
   fill.style.width = pct + '%';
   fill.style.background = pct < 34 ? '#cf3030' : pct < 67 ? '#d48020' : '#238636';
 
   const ph = phaseA(u);
-  document.getElementById('phaseLabel').textContent = ph;
-  document.getElementById('m-phase').textContent = ph;
+  document.getElementById('phaseText').textContent = ph;
   document.getElementById('m-step').textContent = `${step} / ${N_STEPS - 1}`;
   document.getElementById('m-ct').textContent = (u * 25).toFixed(1) + ' s';
   document.getElementById('scrubber').value = step;
-  document.getElementById('stepLabel').textContent = `${step} / ${N_STEPS - 1}`;
+
+  // Cycle time trend: mid-phase = stable, transport = slightly favourable
+  const ctTrend = document.getElementById('trend-ct');
+  if (u > 0.33 && u < 0.47 || u > 0.73 && u < 0.86) {
+    ctTrend.textContent = '↓'; ctTrend.className = 'trend good';
+  } else {
+    ctTrend.textContent = '→'; ctTrend.className = 'trend stable';
+  }
+
+  // Metrics panel glow when playing
+  document.getElementById('mbox').classList.toggle('active-focus', playing && step > 0);
+
+  updateElapsed(step);
 }
 
 // ── Render loop ───────────────────────────────────────────────────────────────
@@ -802,7 +939,18 @@ const STEP_MS = 115;
 
 function animate(now) {
   requestAnimationFrame(animate);
+
+  // Slow idle camera drift when user isn't interacting
+  if (!isOrbiting) {
+    idleAngle += 0.00018;
+    const offset = camera.position.clone().sub(orbit.target);
+    const r = Math.sqrt(offset.x * offset.x + offset.z * offset.z);
+    camera.position.x = orbit.target.x + Math.sin(idleAngle) * r;
+    camera.position.z = orbit.target.z + Math.cos(idleAngle) * r;
+  }
+
   orbit.update();
+
   if (playing) {
     accMs += (now - lastT) * speed;
     while (accMs >= STEP_MS) {
@@ -824,8 +972,11 @@ const btnReset = document.getElementById('btnReset');
 const scrubber = document.getElementById('scrubber');
 
 btnPlay.addEventListener('click', () => {
+  if (!playing) playStartWall = performance.now();
   playing = !playing;
   btnPlay.textContent = playing ? '⏸ Pause' : '▶ Play';
+  document.getElementById('phaseDot').className = 'phase-dot ' + (playing ? 'live' : 'idle');
+  if (!playing) document.getElementById('elapsedLabel').textContent = '— paused —';
 });
 
 const SPEEDS = [0.5, 1, 2, 4]; let si = 1;
@@ -837,10 +988,13 @@ btnSpeed.addEventListener('click', () => {
 
 btnReset.addEventListener('click', () => {
   camera.position.copy(CAM0_P); orbit.target.copy(CAM0_T); orbit.update();
+  idleAngle = Math.atan2(CAM0_P.x - CAM0_T.x, CAM0_P.z - CAM0_T.z);
 });
 
 function pauseAndStep(delta) {
   playing = false; btnPlay.textContent = '▶ Play';
+  document.getElementById('phaseDot').className = 'phase-dot idle';
+  document.getElementById('elapsedLabel').textContent = '— paused —';
   step = ((step + delta) % N_STEPS + N_STEPS) % N_STEPS;
   scrubber.value = step;
 }
@@ -849,20 +1003,16 @@ document.getElementById('btnStepFwd').addEventListener('click',  () => pauseAndS
 
 scrubber.addEventListener('input', () => {
   playing = false; btnPlay.textContent = '▶ Play';
+  document.getElementById('phaseDot').className = 'phase-dot idle';
+  document.getElementById('elapsedLabel').textContent = '— paused —';
   step = parseInt(scrubber.value);
   const u = step / (N_STEPS - 1);
-  // Snap assembly state to match scrubber position
-  maPlaced = u >= 0.59;  mbPlaced = u >= 0.61;
-  cpPlaced = u >= 0.98 && maPlaced;
-  bmPlaced = u >= 0.99 && mbPlaced;
-  if (!maPlaced) modA.position.copy(POS_MA_SHELF);
-  else modA.position.copy(POS_MA_ASSEM);
-  if (!mbPlaced) modB.position.copy(POS_MB_SHELF);
-  else modB.position.copy(POS_MB_ASSEM);
-  if (!cpPlaced) coolPlate.position.copy(POS_CP_SHELF);
-  else coolPlate.position.copy(POS_CP_ASSEM);
-  if (!bmPlaced) bmsCover.position.copy(POS_BM_SHELF);
-  else bmsCover.position.copy(POS_BM_ASSEM);
+  maPlaced = u >= 0.59; mbPlaced = u >= 0.61;
+  cpPlaced = u >= 0.98 && maPlaced; bmPlaced = u >= 0.99 && mbPlaced;
+  if (!maPlaced) modA.position.copy(POS_MA_SHELF); else modA.position.copy(POS_MA_ASSEM);
+  if (!mbPlaced) modB.position.copy(POS_MB_SHELF); else modB.position.copy(POS_MB_ASSEM);
+  if (!cpPlaced) coolPlate.position.copy(POS_CP_SHELF); else coolPlate.position.copy(POS_CP_ASSEM);
+  if (!bmPlaced) bmsCover.position.copy(POS_BM_SHELF); else bmsCover.position.copy(POS_BM_ASSEM);
 });
 
 window.addEventListener('resize', () => {
