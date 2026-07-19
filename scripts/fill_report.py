@@ -78,13 +78,13 @@ def main(dry_run=False):
 
         # Match the existing row (estimated or placeholder) for this chi value
         pat = re.compile(
-            rf"^{chi}\s+&\s+\$[^\\]+\$\s+&\s+\$[^\\]+\$\s+&\s+\$[^\\]+\$\s+&\s+\$[^\\]+\$\s*\\\\$",
+            rf"^{chi}\s+&\s+\$[^$]+\$\s+&\s+\$[^$]+\$\s+&\s+\$[^$]+\$\s+&\s+\$[^$]+\$\s*\\\\$",
             re.MULTILINE,
         )
-        new_tex, n = pat.subn(new_row, tex)
+        new_tex, n = pat.subn(lambda m: new_row, tex)
         if n:
             tex = new_tex
-            print(f"  Table 1 row chi={chi}: updated → {new_row}")
+            print(f"  Table 1 row chi={chi}: updated -> {new_row}")
         else:
             print(f"  WARNING: Table 1 row chi={chi} pattern not matched")
 
@@ -119,12 +119,12 @@ def main(dry_run=False):
     bl1_m, bl1_s = _cond_l1("B_tn_llm_only")
     if bl1_m is not None:
         pat_b = re.compile(
-            r"TN LLM only \(\$\\chi=64\$\)\s*&\s*\$[^\\]+\$\s*&\s*\$\\sim\$1\.20\\,B\s*&\s*---\s*\\\\",
+            r"TN LLM only \(\$\\chi=64\$\)\s*&\s*\$[^$]+\$\s*&\s*[^&]+&\s*---\s*\\\\",
             re.MULTILINE,
         )
         new_b = (f"TN LLM only ($\\chi=64$) & ${bl1_m:.4f}\\pm{bl1_s:.4f}$ "
                  f"& $\\sim$1.20\\,B & --- \\\\")
-        new_tex, n = pat_b.subn(new_b, tex)
+        new_tex, n = pat_b.subn(lambda m: new_b, tex)
         if n:
             tex = new_tex
             print(f"  Ablation row B: L1 shift={bl1_m:.4f} ± {bl1_s:.4f}")
@@ -138,12 +138,12 @@ def main(dry_run=False):
         n_full = tn.get("64", {}).get("n_params_core")
         params_str = f"$\\sim${n_full/1e9:.2f}\\,B" if n_full else "$\\sim$0.13\\,B"
         pat_c = re.compile(
-            r"TN full \(\$\\chi=64\$\)\s*&\s*\$[^\\]+\$\s*&\s*[^&]+&\s*\$[^\\]+\$\s*\\\\",
+            r"TN full \(\$\\chi=64\$\)\s*&\s*\$[^$]+\$\s*&\s*[^&]+&\s*\$[^$]+\$\s*\\\\",
             re.MULTILINE,
         )
         new_c = (f"TN full ($\\chi=64$) & ${cl1_m:.4f}\\pm{cl1_s:.4f}$ "
                  f"& {params_str} & ${delta_c_vs_b:+.4f}$ \\\\")
-        new_tex, n = pat_c.subn(new_c, tex)
+        new_tex, n = pat_c.subn(lambda m: new_c, tex)
         if n:
             tex = new_tex
             print(f"  Ablation row C: L1 shift={cl1_m:.4f}, delta vs B={delta_c_vs_b:+.4f}")
@@ -158,10 +158,11 @@ def main(dry_run=False):
             b_kwh_total = baseline_agg.get("total_kwh", {}).get("mean", 0.006)
             b_kwh_per_ep = b_kwh_total / 200
             kwh_pct = (b_kwh_per_ep - kwh64_per_ep) / b_kwh_per_ep * 100 if b_kwh_per_ep else 0.0
+            _energy_repl = (f"Compressed model ($\\chi=64$): ${kwh64_per_ep:.2e}$\\,kWh/sample\n"
+                            f"(${kwh_pct:.0f}\\%$ per-sample reduction).")
             tex = re.sub(
                 r"Compressed model \(\$\\chi=64\$\): \$[0-9.e+-]+\$\\,kWh/sample\s*\n\s*\(\$[0-9]+\\%\$ per-sample reduction\)\.",
-                (f"Compressed model ($\\chi=64$): ${kwh64_per_ep:.2e}$\\,kWh/sample\n"
-                 f"(${kwh_pct:.0f}\\%$ per-sample reduction)."),
+                lambda m: _energy_repl,
                 tex,
             )
             print(f"  Energy: {kwh64_per_ep:.2e} kWh/ep, {kwh_pct:.0f}% reduction")
@@ -179,9 +180,10 @@ def main(dry_run=False):
             total_wall_s += t_ms * n_ep_actual * len(eval_summary.get("seeds", [1,2,3])) / 1000.0
     gpu_h = total_wall_s / 3600.0
     if gpu_h > 0:
+        _gpu_repl = f"Phase 3 GPU-hours & $\\sim${gpu_h:.2f}\\,h (4 $\\chi$ $\\times$ 3 seeds) \\\\"
         tex = re.sub(
             r"Phase 3 GPU-hours & .*? \\\\",
-            f"Phase 3 GPU-hours & $\\\\sim${gpu_h:.2f}\\\\,h (4 $\\\\chi$ $\\\\times$ 3 seeds) \\\\\\\\",
+            lambda m: _gpu_repl,
             tex,
         )
         print(f"  Phase 3 GPU-hours: {gpu_h:.2f} h")

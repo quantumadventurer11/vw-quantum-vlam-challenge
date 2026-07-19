@@ -1,128 +1,245 @@
 {
   "phase": 3,
-  "data_note": "ESTIMATED from Phase 2 per-layer Frobenius reconstruction statistics. L1-shift values use a log-chi scaling model anchored to CompactifAI results; timing/memory reflect in-place reconstruction (unchanged architecture). Direct GPU inference evaluation pending quota reset (~2026-07-18).",
   "ablation_chi": 64,
   "conditions": {
     "A_int8_only": {
-      "condition": "A_fp16_baseline",
+      "description": "INT8-only baseline (Phase 1)",
       "source": "phase1",
       "aggregate": {
         "l1_error_mean": {
-          "mean": 0.0,
-          "std": 0.0,
-          "n_runs": 3
-        },
-        "inference_time_ms_mean": {
-          "mean": 2095.6349,
-          "std": 3.1745,
+          "mean": 0.28485179124084264,
+          "std": 0.0029542450893536762,
           "n_runs": 3,
           "values": [
-            2092.5206,
-            2095.5179,
-            2098.8663
+            0.2809107678051362,
+            0.2880233844635759,
+            0.2856212214538158
+          ]
+        },
+        "inference_time_ms_mean": {
+          "mean": 2095.6349316666715,
+          "std": 1.2338907416920708,
+          "n_runs": 3,
+          "values": [
+            2097.1239453300063,
+            2094.102479229996,
+            2095.6783704400123
           ]
         },
         "peak_mem_mib_mean": {
-          "mean": 14345.6025,
-          "std": 22.6453,
+          "mean": 14345.6025390625,
+          "std": 0.0,
           "n_runs": 3,
           "values": [
-            14341.0653,
-            14370.1729,
-            14325.5694
+            14345.6025390625,
+            14345.6025390625,
+            14345.6025390625
+          ]
+        },
+        "avg_power_w": {
+          "mean": 48.1917775,
+          "std": 1.3146091574605603,
+          "n_runs": 3,
+          "values": [
+            46.627865,
+            48.1031425,
+            49.844325
+          ]
+        },
+        "total_kwh": {
+          "mean": 0.006023999999999999,
+          "std": 0.00016633901125913517,
+          "n_runs": 3,
+          "values": [
+            0.005826,
+            0.006013,
+            0.006233
+          ]
+        },
+        "co2e_g": {
+          "mean": 2.325366666666667,
+          "std": 0.06416594804792407,
+          "n_runs": 3,
+          "values": [
+            2.249,
+            2.3211,
+            2.406
           ]
         }
       }
     },
     "B_tn_llm_only": {
-      "condition": "B_tn_llm_only",
-      "bond_dim": 64,
+      "description": "INT8 + TN (LLM layers only, \u03c7=64)",
+      "source": "this_session",
       "aggregate": {
         "l1_error_mean": {
-          "mean": 0.083,
-          "std": 0.0121,
+          "mean": 0.2016997049262624,
+          "std": 2.7755575615628914e-17,
           "n_runs": 3,
           "values": [
-            0.076,
-            0.0969,
-            0.076
+            0.20169970492626238,
+            0.20169970492626238,
+            0.20169970492626238
           ]
         },
         "inference_time_ms_mean": {
-          "mean": 2095.6349,
-          "std": 49.9397,
+          "mean": 5880.654935873329,
+          "std": 3.2900345334267524,
           "n_runs": 3,
           "values": [
-            2133.4476,
-            2114.433,
-            2039.0242
+            5884.06248944003,
+            5881.694865499976,
+            5876.2074526799815
           ]
         },
         "peak_mem_mib_mean": {
-          "mean": 14345.6025,
-          "std": 45.9434,
+          "mean": 14112.103515625,
+          "std": 0.0,
           "n_runs": 3,
           "values": [
-            14336.1361,
-            14395.5418,
-            14305.1297
+            14112.103515625,
+            14112.103515625,
+            14112.103515625
           ]
         },
         "avg_power_w": {
-          "mean": 47.2019,
-          "std": 1.2161,
+          "mean": 85.79246666666666,
+          "std": 0.5805753801952798,
           "n_runs": 3,
           "values": [
-            48.2859,
-            45.8869,
-            47.4328
+            85.01487999999999,
+            85.95296,
+            86.40956
           ]
         },
         "total_kwh": {
-          "mean": 0.0015,
-          "std": 0.0001,
+          "mean": 0.007138333333333333,
+          "std": 4.4850368510811146e-05,
           "n_runs": 3,
           "values": [
-            0.0014,
-            0.0015,
-            0.0015
+            0.007077,
+            0.007155,
+            0.007183
+          ]
+        },
+        "co2e_g": {
+          "mean": 2.7555,
+          "std": 0.01723968290504987,
+          "n_runs": 3,
+          "values": [
+            2.7319,
+            2.762,
+            2.7726
           ]
         }
       }
     },
     "C_tn_full": {
-      "condition": "C_tn_full",
-      "bond_dim": 64,
-      "n_params_compressed_b": 0.45,
+      "description": "INT8 + TN (all linear layers, \u03c7=64)",
+      "source": "this_session",
+      "per_seed": [
+        {
+          "seed": 42,
+          "n_samples": 50,
+          "n_skipped": 0,
+          "l1_error_mean": 0.22595396440373844,
+          "l1_error_std": 2.7755575615628914e-17,
+          "inference_time_ms_mean": 5881.360926119978,
+          "inference_time_ms_std": 7.6016335792335,
+          "peak_mem_mib_mean": 14137.23583984375,
+          "avg_power_w": 86.01007000000001,
+          "wall_time_s": 299.74,
+          "total_kwh": 0.007161,
+          "co2e_g": 2.7642
+        },
+        {
+          "seed": 1337,
+          "n_samples": 50,
+          "n_skipped": 0,
+          "l1_error_mean": 0.22595396440373844,
+          "l1_error_std": 2.7755575615628914e-17,
+          "inference_time_ms_mean": 5879.292013020113,
+          "inference_time_ms_std": 8.53958488721359,
+          "peak_mem_mib_mean": 14137.23583984375,
+          "avg_power_w": 86.30807,
+          "wall_time_s": 299.45,
+          "total_kwh": 0.007179,
+          "co2e_g": 2.7712
+        },
+        {
+          "seed": 2024,
+          "n_samples": 50,
+          "n_skipped": 0,
+          "l1_error_mean": 0.22595396440373844,
+          "l1_error_std": 2.7755575615628914e-17,
+          "inference_time_ms_mean": 5880.300713180078,
+          "inference_time_ms_std": 7.599814117956401,
+          "peak_mem_mib_mean": 14137.23583984375,
+          "avg_power_w": 86.65558999999999,
+          "wall_time_s": 299.49,
+          "total_kwh": 0.007209,
+          "co2e_g": 2.7827
+        }
+      ],
       "aggregate": {
         "l1_error_mean": {
-          "mean": 0.121,
-          "std": 0.0185,
+          "mean": 0.2259539644037384,
+          "std": 2.7755575615628914e-17,
           "n_runs": 3,
           "values": [
-            0.1112,
-            0.1095,
-            0.1424
+            0.22595396440373844,
+            0.22595396440373844,
+            0.22595396440373844
           ]
         },
         "inference_time_ms_mean": {
-          "mean": 2095.6349,
-          "std": 114.557,
+          "mean": 5880.317884106723,
+          "std": 0.8447175008012889,
           "n_runs": 3,
           "values": [
-            2133.3767,
-            2186.5591,
-            1966.9689
+            5881.360926119978,
+            5879.292013020113,
+            5880.300713180078
           ]
         },
         "peak_mem_mib_mean": {
-          "mean": 13915.2345,
-          "std": 1.8932,
+          "mean": 14137.23583984375,
+          "std": 0.0,
           "n_runs": 3,
           "values": [
-            13916.7318,
-            13915.8652,
-            13913.1064
+            14137.23583984375,
+            14137.23583984375,
+            14137.23583984375
+          ]
+        },
+        "avg_power_w": {
+          "mean": 86.32457666666669,
+          "std": 0.26379078848376003,
+          "n_runs": 3,
+          "values": [
+            86.01007000000001,
+            86.30807,
+            86.65558999999999
+          ]
+        },
+        "total_kwh": {
+          "mean": 0.007182999999999999,
+          "std": 1.9798989873223475e-05,
+          "n_runs": 3,
+          "values": [
+            0.007161,
+            0.007179,
+            0.007209
+          ]
+        },
+        "co2e_g": {
+          "mean": 2.7727000000000004,
+          "std": 0.007626707459098371,
+          "n_runs": 3,
+          "values": [
+            2.7642,
+            2.7712,
+            2.7827
           ]
         }
       }
@@ -130,14 +247,24 @@
   },
   "delta_B_vs_A": {
     "l1_error": {
-      "absolute": 0.083,
-      "interpretation": "L1 shift attributable to TN compression of LLM backbone"
-    }
+      "absolute": -0.08315208631458024,
+      "relative_pct": -29.191351036397386
+    },
+    "inference_time_ms": {
+      "absolute": 3785.0200042066576,
+      "relative_pct": 180.61447378129012
+    },
+    "interpretation": "\u0394 attributable to TN compression of LLM backbone (QI component)"
   },
   "delta_C_vs_B": {
     "l1_error": {
-      "absolute": 0.038,
-      "interpretation": "Additional L1 shift from also compressing the vision encoder"
-    }
+      "absolute": 0.024254259477476003,
+      "relative_pct": 12.024935527963663
+    },
+    "inference_time_ms": {
+      "absolute": -0.3370517666062369,
+      "relative_pct": -0.005731534502222613
+    },
+    "interpretation": "Additional \u0394 from also compressing the vision encoder"
   }
 }

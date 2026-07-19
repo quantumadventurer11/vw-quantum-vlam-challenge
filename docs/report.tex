@@ -261,8 +261,8 @@ in Section~\ref{sec:accuracy}.
         CO$_2$e: $2.33 \pm 0.06$\,g (US grid, 0.386\,kg\,CO$_2$e/kWh)
 \end{itemize}
 
-\textbf{Compressed models} (Phase 3 evaluation; metrics estimated from Phase~2
-reconstruction data---direct GPU evaluation pending quota reset $\sim$2026-07-18):
+\textbf{Compressed models} (Phase~3 direct GPU evaluation, 3 seeds $\times$ 50 episodes each):
+
 
 \begin{table}[h]
 \centering
@@ -274,18 +274,17 @@ reconstruction data---direct GPU evaluation pending quota reset $\sim$2026-07-18
 $\chi$ & Time (ms) & $\Delta t$ (\%) & Mem (MiB) & L1 shift\dag \\
 \midrule
 FP16  & $2095.6\pm1.2$ & --- & $14345.6$ & --- \\
-128   & $2096\pm46$ & $-0.0\%$ & $14346$ & $0.0539\pm0.0122$ \\
-64   & $2096\pm50$ & $-0.0\%$ & $14346$ & $0.0830\pm0.0121$ \\
-32   & $2096\pm56$ & $-0.0\%$ & $14346$ & $0.1383\pm0.0205$ \\
-16   & $2096\pm67$ & $-0.0\%$ & $14346$ & $0.2583\pm0.0655$ \\
+128   & $5881\pm3$ & $+180.6\%$ & $14112$ & $0.2742\pm0.0000$ \\
+64   & $5881\pm3$ & $+180.6\%$ & $14112$ & $0.2017\pm0.0000$ \\
+32   & $5895\pm3$ & $+181.3\%$ & $14112$ & $0.2320\pm0.0000$ \\
+16   & $5888\pm2$ & $+181.0\%$ & $14112$ & $0.2224\pm0.0000$ \\
 \bottomrule
 \end{tabular}
 \par\smallskip
 {\footnotesize \dag~L1 distance of compressed-model predictions from uncompressed
 FP16 predictions (measures compression-induced shift, not absolute action quality).
 FP16 baseline L1 vs.\ real ground-truth: $0.2849 \pm 0.003$.
-Values in rows 2--5 are \emph{estimated} from Phase~2 per-layer Frobenius errors
-using a log-$\chi$ scaling model; direct inference measurements pending.}
+Values in rows 2--5 are measured directly via GPU inference (Phase~3).}
 \end{table}
 
 \subsection{Compression vs.\ Accuracy (Pareto Curve)}
@@ -317,8 +316,8 @@ operation is memory-bandwidth-bound.
 \subsection{Energy Efficiency}
 
 FP16 baseline: $3.01 \times 10^{-5}$\,kWh per sample ($0.006$\,kWh/200-sample batch) on the P100.
-Compressed model ($\chi=64$): $3.00e-05$\,kWh/sample
-($0\%$ per-sample reduction). The model compression reduces FLOPs but the dominant
+Compressed model ($\chi=64$): $1.43e-04$\,kWh/sample
+($-374\%$ per-sample reduction). The model compression reduces FLOPs but the dominant
 energy cost is data movement; energy savings track parameter count reduction
 approximately linearly.
 
@@ -348,8 +347,8 @@ We compare three conditions (3 seeds each):
 Condition & L1 shift\dag & Params & $\Delta$ shift vs.\ B \\
 \midrule
 FP16 baseline (ref.) & 0 (by def.) & 7.54\,B & --- \\
-TN LLM only ($\chi=64$) & $0.0830\pm0.0121$ & $\sim$1.20\,B & --- \\
-TN full ($\chi=64$) & $0.1210\pm0.0185$ & $\sim$0.13\,B & $+0.0380$ \\
+TN LLM only ($\chi=64$) & $0.2017\pm0.0000$ & $\sim$1.20\,B & --- \\
+TN full ($\chi=64$) & $0.2260\pm0.0000$ & $\sim$0.13\,B & $+0.0243$ \\
 \bottomrule
 \end{tabular}
 \par\smallskip
@@ -522,7 +521,7 @@ Transformers & 4.40.1 \\
 PennyLane & $\geq$0.36 (CPU) \\
 Phase 1 GPU-hours & $\sim$0.4\,h (3 seeds $\times$ 450\,s) \\
 Phase 2 GPU-hours & $\sim$0.8\,h (full sweep, 2691\,s total) \\
-Phase 3 GPU-hours & $\sim$0.39\,h (4 $\chi$ $\times$ 3 seeds) \\
+Phase 3 GPU-hours & $\sim$1.00\,h (4 $\chi$ $\times$ 3 seeds) \\
 Phase 4 GPU-hours & $\sim$0.5\,h (2 episodes $\times$ 200 steps) \\
 Phase 5 CPU-hours & $<$0.1\,h (CPU simulator) \\
 Total energy (P1+P2) & $\sim$0.018\,kWh (from pynvml measurements) \\

@@ -1,7 +1,6 @@
 {
   "phase": 3,
   "model": "openvla/openvla-7b",
-  "data_note": "ESTIMATED from Phase 2 per-layer Frobenius reconstruction statistics. L1-shift values use a log-chi scaling model anchored to CompactifAI results; timing/memory reflect in-place reconstruction (unchanged architecture). Direct GPU inference evaluation pending quota reset (~2026-07-18).",
   "seeds": [
     42,
     1337,
@@ -9,20 +8,24 @@
   ],
   "n_eval_episodes_per_run": 50,
   "hardware": {
-    "gpu_name": "Tesla P100-PCIE-16GB",
-    "gpu_vram_gb": 15.89,
-    "gpu_multi_proc": 56,
+    "bitsandbytes_version": "0.43.3",
     "cuda_version": "11.8",
     "driver_version": "580.159.04",
+    "gpu_multi_proc": 56,
+    "gpu_name": "Tesla P100-PCIE-16GB",
+    "gpu_vram_gb": 15.89,
+    "model_precision": "FP16",
+    "n_params_b": 7.541,
+    "n_params_total": 7541237184,
+    "peak_mem_load_mib": 13791.7,
+    "platform": "Linux-6.12.90+-x86_64-with-glibc2.35",
+    "sm_version": "sm_60",
     "torch_version": "2.2.2+cu118",
     "transformers_version": "4.40.1",
-    "bitsandbytes_version": "0.43.3",
-    "platform": "Linux-6.12.90+-x86_64-with-glibc2.35",
-    "n_params_total": 7541237184,
-    "n_params_b": 7.541,
-    "peak_mem_load_mib": 13791.7,
-    "model_precision": "FP16",
-    "sm_version": "sm_60"
+    "eval_session_gpu": "Tesla P100-PCIE-16GB",
+    "eval_session_vram_gb": 15.89,
+    "eval_session_cuda": "11.8",
+    "eval_session_driver": "580.159.04"
   },
   "baseline": {
     "source": "phase1",
@@ -97,6 +100,26 @@
           450.03,
           450.2
         ]
+      },
+      "l1_error_mean": {
+        "mean": 0.28485179124084264,
+        "std": 0.0029542450893536762,
+        "n_runs": 3,
+        "values": [
+          0.2809107678051362,
+          0.2880233844635759,
+          0.2856212214538158
+        ]
+      },
+      "inference_time_ms_mean": {
+        "mean": 2095.6349316666715,
+        "std": 1.2338907416920708,
+        "n_runs": 3,
+        "values": [
+          2097.1239453300063,
+          2094.102479229996,
+          2095.6783704400123
+        ]
       }
     }
   },
@@ -105,58 +128,68 @@
       "bond_dim": 16,
       "condition": "llm_only",
       "n_params_core": 8799040,
-      "compression_ratio": 7.0214,
-      "efficiency_gain_pct": -0.79,
-      "param_efficiency_gain_pct": 85.76,
+      "compression_ratio": 7.021434438352371,
+      "efficiency_gain_pct": -180.9747438193859,
+      "param_efficiency_gain_pct": 99.88332100177583,
       "aggregate": {
         "l1_error_mean": {
-          "mean": 0.2583,
-          "std": 0.0655,
+          "mean": 0.22242099936306414,
+          "std": 0.0,
           "n_runs": 3,
           "values": [
-            0.334,
-            0.2197,
-            0.2213
+            0.22242099936306414,
+            0.22242099936306414,
+            0.22242099936306414
           ]
         },
         "inference_time_ms_mean": {
-          "mean": 2095.6349,
-          "std": 66.6626,
+          "mean": 5888.2048806399935,
+          "std": 2.2175484893598125,
           "n_runs": 3,
           "values": [
-            2081.5332,
-            2037.1514,
-            2168.2202
+            5885.561980320006,
+            5890.988380859989,
+            5888.064280739985
           ]
         },
         "peak_mem_mib_mean": {
-          "mean": 14345.6025,
-          "std": 69.5973,
+          "mean": 14112.103515625,
+          "std": 0.0,
           "n_runs": 3,
           "values": [
-            14275.1632,
-            14414.326,
-            14347.3184
+            14112.103515625,
+            14112.103515625,
+            14112.103515625
           ]
         },
         "avg_power_w": {
-          "mean": 47.0148,
-          "std": 0.9576,
+          "mean": 85.28729333333335,
+          "std": 1.3157675790283934,
           "n_runs": 3,
           "values": [
-            46.9986,
-            46.0654,
-            47.9803
+            83.42807,
+            86.15108000000001,
+            86.28273000000003
           ]
         },
         "total_kwh": {
-          "mean": 0.0015,
-          "std": 0.0001,
+          "mean": 0.007105666666666666,
+          "std": 0.00011222101209468549,
           "n_runs": 3,
           "values": [
-            0.0015,
-            0.0014,
-            0.0016
+            0.006947,
+            0.007182,
+            0.007188
+          ]
+        },
+        "co2e_g": {
+          "mean": 2.7428000000000003,
+          "std": 0.04335765983844914,
+          "n_runs": 3,
+          "values": [
+            2.6815,
+            2.7722,
+            2.7747
           ]
         }
       }
@@ -165,58 +198,68 @@
       "bond_dim": 32,
       "condition": "llm_only",
       "n_params_core": 34200192,
-      "compression_ratio": 6.8592,
-      "efficiency_gain_pct": -0.13,
-      "param_efficiency_gain_pct": 85.42,
+      "compression_ratio": 6.859212014931346,
+      "efficiency_gain_pct": -181.30249169997157,
+      "param_efficiency_gain_pct": 99.5464909647377,
       "aggregate": {
         "l1_error_mean": {
-          "mean": 0.1383,
-          "std": 0.0205,
+          "mean": 0.23199564620213795,
+          "std": 0.0,
           "n_runs": 3,
           "values": [
-            0.1429,
-            0.1561,
-            0.1159
+            0.23199564620213795,
+            0.23199564620213795,
+            0.23199564620213795
           ]
         },
         "inference_time_ms_mean": {
-          "mean": 2095.6349,
-          "std": 55.8814,
+          "mean": 5895.073279713343,
+          "std": 2.7148764364847664,
           "n_runs": 3,
           "values": [
-            2033.3406,
-            2112.212,
-            2141.3522
+            5894.853782080013,
+            5898.502621380013,
+            5891.863435680007
           ]
         },
         "peak_mem_mib_mean": {
-          "mean": 14345.6025,
-          "std": 22.0729,
+          "mean": 14112.103515625,
+          "std": 0.0,
           "n_runs": 3,
           "values": [
-            14322.7433,
-            14366.7945,
-            14347.2698
+            14112.103515625,
+            14112.103515625,
+            14112.103515625
           ]
         },
         "avg_power_w": {
-          "mean": 46.2125,
-          "std": 0.3811,
+          "mean": 85.78259666666668,
+          "std": 0.3932301061154422,
           "n_runs": 3,
           "values": [
-            46.0127,
-            45.9728,
-            46.6519
+            85.28071,
+            85.82611000000001,
+            86.24097000000002
           ]
         },
         "total_kwh": {
-          "mean": 0.0015,
-          "std": 0.0001,
+          "mean": 0.007158,
+          "std": 3.2072833779799727e-05,
           "n_runs": 3,
           "values": [
-            0.0016,
-            0.0015,
-            0.0014
+            0.007115,
+            0.007167,
+            0.007192
+          ]
+        },
+        "co2e_g": {
+          "mean": 2.762966666666667,
+          "std": 0.012365633380012907,
+          "n_runs": 3,
+          "values": [
+            2.7464,
+            2.7664,
+            2.7761
           ]
         }
       }
@@ -225,58 +268,68 @@
       "bond_dim": 64,
       "condition": "llm_only",
       "n_params_core": 134808832,
-      "compression_ratio": 6.2842,
-      "efficiency_gain_pct": 0.94,
-      "param_efficiency_gain_pct": 84.09,
+      "compression_ratio": 6.284151496735977,
+      "efficiency_gain_pct": -180.61447378129012,
+      "param_efficiency_gain_pct": 98.21237777421959,
       "aggregate": {
         "l1_error_mean": {
-          "mean": 0.083,
-          "std": 0.0121,
+          "mean": 0.2016997049262624,
+          "std": 2.7755575615628914e-17,
           "n_runs": 3,
           "values": [
-            0.076,
-            0.0969,
-            0.076
+            0.20169970492626238,
+            0.20169970492626238,
+            0.20169970492626238
           ]
         },
         "inference_time_ms_mean": {
-          "mean": 2095.6349,
-          "std": 49.9397,
+          "mean": 5880.654935873329,
+          "std": 3.2900345334267524,
           "n_runs": 3,
           "values": [
-            2133.4476,
-            2114.433,
-            2039.0242
+            5884.06248944003,
+            5881.694865499976,
+            5876.2074526799815
           ]
         },
         "peak_mem_mib_mean": {
-          "mean": 14345.6025,
-          "std": 45.9434,
+          "mean": 14112.103515625,
+          "std": 0.0,
           "n_runs": 3,
           "values": [
-            14336.1361,
-            14395.5418,
-            14305.1297
+            14112.103515625,
+            14112.103515625,
+            14112.103515625
           ]
         },
         "avg_power_w": {
-          "mean": 47.2019,
-          "std": 1.2161,
+          "mean": 85.79246666666666,
+          "std": 0.5805753801952798,
           "n_runs": 3,
           "values": [
-            48.2859,
-            45.8869,
-            47.4328
+            85.01487999999999,
+            85.95296,
+            86.40956
           ]
         },
         "total_kwh": {
-          "mean": 0.0015,
-          "std": 0.0001,
+          "mean": 0.007138333333333333,
+          "std": 4.4850368510811146e-05,
           "n_runs": 3,
           "values": [
-            0.0014,
-            0.0015,
-            0.0015
+            0.007077,
+            0.007155,
+            0.007183
+          ]
+        },
+        "co2e_g": {
+          "mean": 2.7555,
+          "std": 0.01723968290504987,
+          "n_runs": 3,
+          "values": [
+            2.7319,
+            2.762,
+            2.7726
           ]
         }
       }
@@ -285,58 +338,68 @@
       "bond_dim": 128,
       "condition": "llm_only",
       "n_params_core": 312184632,
-      "compression_ratio": 5.4749,
-      "efficiency_gain_pct": 1.89,
-      "param_efficiency_gain_pct": 81.73,
+      "compression_ratio": 5.474914459420856,
+      "efficiency_gain_pct": -180.62198572103588,
+      "param_efficiency_gain_pct": 95.86029951872682,
       "aggregate": {
         "l1_error_mean": {
-          "mean": 0.0539,
-          "std": 0.0122,
+          "mean": 0.2742487684839339,
+          "std": 0.0,
           "n_runs": 3,
           "values": [
-            0.049,
-            0.045,
-            0.0678
+            0.2742487684839339,
+            0.2742487684839339,
+            0.2742487684839339
           ]
         },
         "inference_time_ms_mean": {
-          "mean": 2095.6349,
-          "std": 45.6986,
+          "mean": 5880.812358706687,
+          "std": 3.2604152747911765,
           "n_runs": 3,
           "values": [
-            2061.3886,
-            2077.991,
-            2147.5252
+            5878.581667659992,
+            5878.4329260200775,
+            5885.42248243999
           ]
         },
         "peak_mem_mib_mean": {
-          "mean": 14345.6025,
-          "std": 52.2163,
+          "mean": 14112.103515625,
+          "std": 0.0,
           "n_runs": 3,
           "values": [
-            14385.3267,
-            14365.0219,
-            14286.4589
+            14112.103515625,
+            14112.103515625,
+            14112.103515625
           ]
         },
         "avg_power_w": {
-          "mean": 45.9498,
-          "std": 1.7362,
+          "mean": 86.46310333333334,
+          "std": 0.3500400255526465,
           "n_runs": 3,
           "values": [
-            46.4744,
-            47.3631,
-            44.0118
+            85.97639,
+            86.78472000000002,
+            86.62820000000002
           ]
         },
         "total_kwh": {
-          "mean": 0.0015,
-          "std": 0.0001,
+          "mean": 0.007194333333333333,
+          "std": 3.0684777260973255e-05,
           "n_runs": 3,
           "values": [
-            0.0016,
-            0.0015,
-            0.0014
+            0.007151,
+            0.007218,
+            0.007214
+          ]
+        },
+        "co2e_g": {
+          "mean": 2.7769999999999997,
+          "std": 0.011897338637975527,
+          "n_runs": 3,
+          "values": [
+            2.7602,
+            2.7862,
+            2.7846
           ]
         }
       }
