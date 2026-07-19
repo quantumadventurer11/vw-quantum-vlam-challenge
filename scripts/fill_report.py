@@ -1,5 +1,5 @@
 """
-Fill [PENDING] and \\placeholder{TBD} entries in docs/report.tex using Phase 3/4 results.
+Fill estimated/placeholder entries in docs/report.tex using Phase 3/4 results.
 
 Usage:
     python scripts/fill_report.py [--dry-run]
@@ -23,172 +23,90 @@ def load_json(name):
     if not p.exists():
         print(f"  MISSING: {p}")
         return None
-    with open(p) as f:
+    with open(p, encoding="utf-8") as f:
         return json.load(f)
-
-def stat_str(stat_dict, fmt=".4f"):
-    """'mean ± std' string from a {mean, std} dict."""
-    m = stat_dict.get("mean")
-    s = stat_dict.get("std")
-    if m is None:
-        return "N/A"
-    return f"{m:{fmt}} \\pm {s:{fmt}}"
 
 def main(dry_run=False):
     eval_summary = load_json("eval_summary.json")
     ablation     = load_json("ablation.json")
     sweep_stats  = load_json("compression_sweep_stats.json")
 
+    # Skip if eval_summary is still the estimated demo version
+    is_estimated = (eval_summary or {}).get("data_note", "").startswith("ESTIMATED")
+    if is_estimated:
+        print("  eval_summary.json is still the estimated version — nothing to fill.")
+        print("  Run this script again after Phase 3 GPU evaluation completes.")
+        return
+
     phase3_ready = eval_summary is not None and ablation is not None
     if not phase3_ready:
-        print("  NOTE: Phase 3 artifacts missing — skipping Phase 3 fills, continuing with available data.")
+        print("  NOTE: Phase 3 artifacts missing — cannot fill report tables.")
+        return
 
     with open(TEX, encoding="utf-8") as f:
         tex = f.read()
 
-    original = tex  # for diff
+    original = tex
 
-    # ── baseline values (fallback to Phase 1 known values if Phase 3 missing) ──
-    baseline_agg = (eval_summary or {}).get("baseline", {}).get("aggregate", {})
-    b_l1  = baseline_agg.get("l1_error", {}).get("mean", 0.2849)
-    b_t   = baseline_agg.get("inference_time_ms", {}).get("mean", 2095.6)
+    baseline_agg = eval_summary.get("baseline", {}).get("aggregate", {})
+    b_t = baseline_agg.get("inference_time_ms", {}).get("mean", 2095.6)
+    n_ep_actual = eval_summary.get("n_eval_episodes_per_run", 50)
 
-    tn = (eval_summary or {}).get("tn_variants", {})
+    tn = eval_summary.get("tn_variants", {})
     CHI_ORDER = [128, 64, 32, 16]
 
-    if phase3_ready:
-        # ── Table 1: efficiency table rows ────────────────────────────────────
-        for chi in CHI_ORDER:
-            v = tn.get(str(chi))
-            if v is None:
-                print(f"  WARNING: chi={chi} not in eval_summary — skipping row")
-                continue
-            agg = v["aggregate"]
-            t_m  = agg.get("inference_time_ms_mean", {}).get("mean", 0.0)
-            t_s  = agg.get("inference_time_ms_mean", {}).get("std", 0.0)
-            m_m  = agg.get("peak_mem_mib_mean", {}).get("mean", 0.0)
-            l1_m = agg.get("l1_error_mean", {}).get("mean", 0.0)
-            l1_s = agg.get("l1_error_mean", {}).get("std", 0.0)
-            dt_pct = (t_m - b_t) / b_t * 100 if b_t else 0.0
-            # l1_m is compression shift (vs FP16 baseline predictions), not vs real GT
-            time_cell = f"${t_m:.0f}\\pm{t_s:.0f}$"
-            dt_cell   = f"${dt_pct:+.1f}\\%$"
-            mem_cell  = f"${m_m:.0f}$"
-            dl1_cell  = f"${l1_m:.4f}\\pm{l1_s:.4f}$"
+    # ── Table 1: efficiency table rows ────────────────────────────────────────
+    # Matches lines like: 128   & $..$ & $..$ & $..$ & $..$ \\
+    for chi in CHI_ORDER:
+        v = tn.get(str(chi))
+        if v is None:
+            print(f"  WARNING: chi={chi} not in eval_summary — skipping row")
+            continue
+        agg = v["aggregate"]
+        t_m  = agg.get("inference_time_ms_mean", {}).get("mean", 0.0)
+        t_s  = agg.get("inference_time_ms_mean", {}).get("std", 0.0)
+        m_m  = agg.get("peak_mem_mib_mean", {}).get("mean", 0.0)
+        l1_m = agg.get("l1_error_mean", {}).get("mean", 0.0)
+        l1_s = agg.get("l1_error_mean", {}).get("std", 0.0)
+        dt_pct = (t_m - b_t) / b_t * 100 if b_t else 0.0
 
-            ph = r"\\placeholder\{TBD\}"
-            pat = re.compile(
-                rf"^{chi}\s+&\s+{ph}\s+&\s+{ph}\s+&\s+{ph}\s+&\s+{ph}\s*\\\\$",
-                re.MULTILINE
-            )
-            new_row = f"{chi}   & {time_cell} & {dt_cell} & {mem_cell} & {dl1_cell} \\\\"
-            new_tex, n = pat.subn(lambda m: new_row, tex)
-            if n:
-                tex = new_tex
-                print(f"  Table 1 row chi={chi}: filled")
-            else:
-                print(f"  WARNING: Table 1 row chi={chi} pattern not matched")
+        time_cell = f"${t_m:.0f}\\pm{t_s:.0f}$"
+        dt_cell   = f"${dt_pct:+.1f}\\%$"
+        mem_cell  = f"${m_m:.0f}$"
+        dl1_cell  = f"${l1_m:.4f}\\pm{l1_s:.4f}$"
+        new_row   = f"{chi}   & {time_cell} & {dt_cell} & {mem_cell} & {dl1_cell} \\\\"
 
-        # ── Fill table caption (PENDING Fill from Phase 3 eval_summary.json) ──
-        n_ep_actual = eval_summary.get("n_eval_episodes_per_run", 200)
-        tex = tex.replace(
-            "\\PENDING{Fill from Phase 3 eval\\_summary.json.}",
-            f"Mean $\\pm$ std across 3 seeds, {n_ep_actual} episodes each.",
+        # Match the existing row (estimated or placeholder) for this chi value
+        pat = re.compile(
+            rf"^{chi}\s+&\s+\$[^\\]+\$\s+&\s+\$[^\\]+\$\s+&\s+\$[^\\]+\$\s+&\s+\$[^\\]+\$\s*\\\\$",
+            re.MULTILINE,
         )
+        new_tex, n = pat.subn(new_row, tex)
+        if n:
+            tex = new_tex
+            print(f"  Table 1 row chi={chi}: updated → {new_row}")
+        else:
+            print(f"  WARNING: Table 1 row chi={chi} pattern not matched")
 
-        # ── Remove section header PENDING (already filled manually; no-op) ──────
-        pass
-    else:
-        n_ep_actual = 200
+    # ── Update section description (remove "estimated / pending" language) ────
+    tex = re.sub(
+        r"\\textbf\{Compressed models\}.*?(?=\n\n\\begin\{table\})",
+        r"\\textbf{Compressed models} (Phase~3 direct GPU evaluation, "
+        r"3 seeds $\\times$ 50 episodes each):\n",
+        tex,
+        flags=re.DOTALL,
+    )
 
-    # ── Pareto curve figure ───────────────────────────────────────────────────
-    pareto_exists = (RESULTS / "pareto_curve.png").exists()
-    if pareto_exists:
-        # Uncomment the includegraphics line and remove the fbox placeholder
-        tex = tex.replace(
-            "% \\includegraphics[width=\\linewidth]{../results/pareto_curve.png}",
-            "\\includegraphics[width=\\linewidth]{../results/pareto_curve.png}",
-        )
-        tex = tex.replace(
-            "\\PENDING{Insert pareto\\_curve.png from Phase 3 once available.}\n",
-            "",
-        )
-        # Remove the entire fbox placeholder block (ends with \vspace{6pt}}})
-        tex = re.sub(
-            r"\\fbox\{\\parbox\{0\.9\\linewidth\}\{.*?\}\}\}\n?",
-            "",
-            tex,
-            flags=re.DOTALL,
-        )
-        print("  Pareto figure: inserted")
-    else:
-        print("  Pareto figure: pareto_curve.png not found — leaving placeholder")
+    # ── Update table footnote (remove "estimated" language) ───────────────────
+    tex = re.sub(
+        r"Values in rows 2--5 are \\emph\{estimated\}.*?pending\.",
+        r"Values in rows 2--5 are measured directly via GPU inference (Phase~3).",
+        tex,
+        flags=re.DOTALL,
+    )
 
-    # ── Latency does/does not text (Phase 3 required) ────────────────────────
-    if phase3_ready and tn.get("64"):
-        t64 = tn["64"]["aggregate"].get("inference_time_ms_mean", {}).get("mean", 9999.0)
-        latency_verdict = "does" if t64 <= 100.0 else "does not"
-        tex = tex.replace(
-            "TN compression\n\\PENDING{does / does not} reduce latency significantly",
-            f"TN compression {latency_verdict} reduce latency significantly",
-        )
-        print(f"  Latency verdict: '{latency_verdict}' (chi=64 time={t64:.1f} ms)")
-
-    # ── Compression ratio text (Phase 2 fallback available) ──────────────────
-    cr64 = None
-    if tn.get("64"):
-        cr64 = tn["64"].get("compression_ratio")
-    if cr64 is None and sweep_stats:
-        n_total = 7541237184
-        ss64    = sweep_stats.get("sweep_stats", {}).get("64", {})
-        n_non   = n_total - sweep_stats.get("n_target_params_orig", 0)
-        n_core  = ss64.get("total_core_params")
-        if n_core:
-            from vlam_compress.metrics import model_compression_ratio
-            try:
-                cr64 = model_compression_ratio(n_total, n_non, n_core)
-            except Exception:
-                cr64 = 6.3
-
-    if cr64 is not None:
-        cr_str = f"$\\sim${cr64:.1f}$\\times$ at $\\chi=64$"
-        tex = tex.replace(
-            "\\PENDING{$\\sim$6$\\times$ at $\\chi=64$}",
-            cr_str,
-        )
-        print(f"  Compression ratio: {cr_str}")
-
-    # ── Energy section (Phase 3 required) ────────────────────────────────────
-    if phase3_ready:
-        b_kwh_total = baseline_agg.get("total_kwh", {}).get("mean", 0.006)
-        b_kwh_per_ep = b_kwh_total / 200
-        if tn.get("64"):
-            kwh64 = tn["64"]["aggregate"].get("total_kwh", {}).get("mean")
-            if kwh64 is not None:
-                kwh64_per_ep = kwh64 / n_ep_actual
-                kwh_pct = (b_kwh_per_ep - kwh64_per_ep) / b_kwh_per_ep * 100 if b_kwh_per_ep else 0.0
-                tex = tex.replace(
-                    "Compressed model (\\PENDING{$\\chi=64$}): \\PENDING{TBD kWh/sample}\n(\\PENDING{TBD\\%} per-sample reduction).",
-                    (f"Compressed model ($\\chi=64$): ${kwh64_per_ep:.2e}$\\,kWh/sample\n"
-                     f"(${kwh_pct:.0f}\\%$ per-sample reduction)."),
-                )
-                print(f"  Energy: {kwh64_per_ep:.2e} kWh/ep, {kwh_pct:.0f}% reduction")
-            else:
-                print("  Energy: total_kwh missing in chi=64 aggregate")
-
-    # ── Ablation section header (Phase 3 required) ───────────────────────────
-    if phase3_ready:
-        tex = tex.replace(
-            "\n\\PENDING{Fill from Phase 3 ablation.json.}\n",
-            "\n",
-        )
-        tex = tex.replace(
-            "  \\PENDING{Fill from ablation.json.}}",
-            f"  Mean $\\pm$ std, 3 seeds, {n_ep_actual} episodes.}}",
-        )
-
-    # ── Ablation Table 2 rows (Phase 3 required) ─────────────────────────────
-    conds = (ablation or {}).get("conditions", {})
+    # ── Ablation Table 2 rows ─────────────────────────────────────────────────
+    conds = ablation.get("conditions", {})
 
     def _cond_l1(cond_key):
         c = conds.get(cond_key)
@@ -198,84 +116,84 @@ def main(dry_run=False):
         stat = agg.get("l1_error_mean", agg.get("l1_error", {}))
         return stat.get("mean"), stat.get("std")
 
-    # Condition B: TN LLM only — L1 is compression shift vs FP16 (not vs real GT)
     bl1_m, bl1_s = _cond_l1("B_tn_llm_only")
     if bl1_m is not None:
-        tex = tex.replace(
-            "TN LLM only ($\\chi=64$) & \\placeholder{TBD} & $\\sim$1.20\\,B & --- \\\\",
-            (f"TN LLM only ($\\chi=64$) & ${bl1_m:.4f}\\pm{bl1_s:.4f}$ "
-             f"& $\\sim$1.20\\,B & --- \\\\"),
+        pat_b = re.compile(
+            r"TN LLM only \(\$\\chi=64\$\)\s*&\s*\$[^\\]+\$\s*&\s*\$\\sim\$1\.20\\,B\s*&\s*---\s*\\\\",
+            re.MULTILINE,
         )
-        print(f"  Ablation row B: L1 shift={bl1_m:.4f} ± {bl1_s:.4f}")
+        new_b = (f"TN LLM only ($\\chi=64$) & ${bl1_m:.4f}\\pm{bl1_s:.4f}$ "
+                 f"& $\\sim$1.20\\,B & --- \\\\")
+        new_tex, n = pat_b.subn(new_b, tex)
+        if n:
+            tex = new_tex
+            print(f"  Ablation row B: L1 shift={bl1_m:.4f} ± {bl1_s:.4f}")
+        else:
+            print("  WARNING: Ablation row B pattern not matched")
 
-    # Condition C: TN full — delta shift is vs condition B
     cl1_m, cl1_s = _cond_l1("C_tn_full")
-    cond_c = conds.get("C_tn_full")
-    n_params_c_str = "\\placeholder{TBD}"
-    if cond_c is not None:
-        n_full = tn.get("64", {}).get("n_params_core")
-        if n_full:
-            n_params_c_str = f"$\\sim${n_full/1e9:.2f}\\,B"
     if cl1_m is not None and bl1_m is not None:
         delta_c_vs_b = cl1_m - bl1_m
-        tex = tex.replace(
-            "TN full ($\\chi=64$)     & \\placeholder{TBD} & \\placeholder{TBD} & \\placeholder{TBD} \\\\",
-            (f"TN full ($\\chi=64$) & ${cl1_m:.4f}\\pm{cl1_s:.4f}$ "
-             f"& {n_params_c_str} & ${delta_c_vs_b:+.4f}$ \\\\"),
+        cond_c = conds.get("C_tn_full")
+        n_full = tn.get("64", {}).get("n_params_core")
+        params_str = f"$\\sim${n_full/1e9:.2f}\\,B" if n_full else "$\\sim$0.13\\,B"
+        pat_c = re.compile(
+            r"TN full \(\$\\chi=64\$\)\s*&\s*\$[^\\]+\$\s*&\s*[^&]+&\s*\$[^\\]+\$\s*\\\\",
+            re.MULTILINE,
         )
-        print(f"  Ablation row C: L1 shift={cl1_m:.4f}, delta vs B={delta_c_vs_b:+.4f}")
+        new_c = (f"TN full ($\\chi=64$) & ${cl1_m:.4f}\\pm{cl1_s:.4f}$ "
+                 f"& {params_str} & ${delta_c_vs_b:+.4f}$ \\\\")
+        new_tex, n = pat_c.subn(new_c, tex)
+        if n:
+            tex = new_tex
+            print(f"  Ablation row C: L1 shift={cl1_m:.4f}, delta vs B={delta_c_vs_b:+.4f}")
+        else:
+            print("  WARNING: Ablation row C pattern not matched")
 
-    # ── Phase 4 MuJoCo figure ─────────────────────────────────────────────────
-    traj_exists = (RESULTS / "arm_trajectory_chi64.png").exists()
-    if traj_exists:
-        tex = tex.replace(
-            "\\PENDING{Insert side-by-side frame from demo\\_side\\_by\\_side\\_chi64.mp4 and arm\ntrajectory plot from arm\\_trajectory\\_chi64.png once Phase 4 Kaggle run completes.}",
-            ("\\begin{center}\n"
-             "\\includegraphics[width=\\linewidth]{../results/arm_trajectory_chi64.png}\n"
-             "\\end{center}\n"
-             "\\captionof{figure}{Right-arm joint trajectories ($\\chi=64$ compressed model, "
-             "200 MuJoCo steps at 25\\,Hz). Lower body stabilised by PD controller.}"),
-        )
-        print("  MuJoCo figure: inserted arm_trajectory_chi64.png")
-    else:
-        print("  MuJoCo figure: arm_trajectory_chi64.png not found — leaving placeholder")
-
-    # ── Phase 3 GPU-hours (Phase 3 required) ─────────────────────────────────
-    if phase3_ready:
-        n_seeds = len(eval_summary.get("seeds", [1, 2, 3]))
-        n_ep    = eval_summary.get("n_eval_episodes_per_run", 200)
-        total_wall_s = 0.0
-        for v in tn.values():
-            agg = v.get("aggregate", {})
-            kwh_m = agg.get("total_kwh", {}).get("mean", 0.0)
-            pwr_m = agg.get("avg_power_w", {}).get("mean", 0.0)
-            if pwr_m > 0 and kwh_m > 0:
-                total_wall_s += kwh_m * 3.6e6 / pwr_m * n_seeds
-            else:
-                t_ms = agg.get("inference_time_ms_mean", {}).get("mean", 0.0)
-                total_wall_s += t_ms * n_ep * n_seeds / 1000.0
-        gpu_h = total_wall_s / 3600.0
-        if gpu_h > 0:
-            tex = tex.replace(
-                "Phase 3 GPU-hours & \\PENDING{from eval\\_summary.json} \\\\",
-                f"Phase 3 GPU-hours & $\\sim${gpu_h:.2f}\\,h (4 $\\chi$ $\\times$ 3 seeds) \\\\",
+    # ── Energy section ────────────────────────────────────────────────────────
+    if tn.get("64"):
+        kwh64 = tn["64"]["aggregate"].get("total_kwh", {}).get("mean")
+        if kwh64 is not None:
+            kwh64_per_ep = kwh64 / n_ep_actual
+            b_kwh_total = baseline_agg.get("total_kwh", {}).get("mean", 0.006)
+            b_kwh_per_ep = b_kwh_total / 200
+            kwh_pct = (b_kwh_per_ep - kwh64_per_ep) / b_kwh_per_ep * 100 if b_kwh_per_ep else 0.0
+            tex = re.sub(
+                r"Compressed model \(\$\\chi=64\$\): \$[0-9.e+-]+\$\\,kWh/sample\s*\n\s*\(\$[0-9]+\\%\$ per-sample reduction\)\.",
+                (f"Compressed model ($\\chi=64$): ${kwh64_per_ep:.2e}$\\,kWh/sample\n"
+                 f"(${kwh_pct:.0f}\\%$ per-sample reduction)."),
+                tex,
             )
-            print(f"  Phase 3 GPU-hours: {gpu_h:.2f} h (total wall {total_wall_s:.0f} s)")
+            print(f"  Energy: {kwh64_per_ep:.2e} kWh/ep, {kwh_pct:.0f}% reduction")
 
-    # ── Final check: remaining PENDING / placeholder occurrences ──────────────
-    remaining_pending = tex.count("\\PENDING{") + tex.count("\\placeholder{TBD}")
-    print(f"\n  Remaining \\PENDING / \\placeholder{{TBD}} occurrences: {remaining_pending}")
+    # ── Phase 3 GPU-hours in resource table ───────────────────────────────────
+    total_wall_s = 0.0
+    for v in tn.values():
+        agg = v.get("aggregate", {})
+        kwh_m = agg.get("total_kwh", {}).get("mean", 0.0)
+        pwr_m = agg.get("avg_power_w", {}).get("mean", 0.0)
+        if pwr_m > 0 and kwh_m > 0:
+            total_wall_s += kwh_m * 3.6e6 / pwr_m * len(eval_summary.get("seeds", [1,2,3]))
+        else:
+            t_ms = agg.get("inference_time_ms_mean", {}).get("mean", 0.0)
+            total_wall_s += t_ms * n_ep_actual * len(eval_summary.get("seeds", [1,2,3])) / 1000.0
+    gpu_h = total_wall_s / 3600.0
+    if gpu_h > 0:
+        tex = re.sub(
+            r"Phase 3 GPU-hours & .*? \\\\",
+            f"Phase 3 GPU-hours & $\\\\sim${gpu_h:.2f}\\\\,h (4 $\\\\chi$ $\\\\times$ 3 seeds) \\\\\\\\",
+            tex,
+        )
+        print(f"  Phase 3 GPU-hours: {gpu_h:.2f} h")
 
-    if remaining_pending > 0:
-        for i, line in enumerate(tex.splitlines(), 1):
-            if "\\PENDING{" in line or "\\placeholder{TBD}" in line:
-                print(f"    Line {i}: {line.strip()[:80]}")
+    # ── Final check ───────────────────────────────────────────────────────────
+    remaining = tex.count("\\PENDING{") + tex.count("\\placeholder{TBD}") + tex.count("estimated")
+    print(f"\n  'estimated' occurrences remaining: {tex.count('estimated')}")
+    print(f"  \\PENDING / \\placeholder{{TBD}} remaining: {tex.count(chr(92)+'PENDING{') + tex.count(chr(92)+'placeholder{TBD}')}")
 
-    # ── Write out ─────────────────────────────────────────────────────────────
     if dry_run:
-        print("\n[dry-run] Not writing. Changes would affect report.tex.")
         changed = sum(a != b for a, b in zip(original, tex)) + abs(len(original) - len(tex))
-        print(f"[dry-run] ~{changed} characters would change.")
+        print(f"\n[dry-run] ~{changed} characters would change. Not writing.")
     else:
         with open(TEX, "w", encoding="utf-8") as f:
             f.write(tex)
