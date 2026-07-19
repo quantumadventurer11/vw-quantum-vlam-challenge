@@ -95,11 +95,11 @@ body { background: #06080e; overflow: hidden; font-family: 'Segoe UI', system-ui
   <div id="topbar">
     <div class="topbar-text">
       <div class="title">VW ID.4 Battery Module Assembly — Digital Twin</div>
-      <div class="sub">Figure 03 · χ=64 OpenVLA-7B · Dual-Arm Parallel Assembly · VW Group Production</div>
+      <div class="sub">χ=64 OpenVLA-7B · Dual-Arm Parallel Assembly · VW Group Production</div>
       <div style="font-size:10px;color:#484f58;letter-spacing:.3px;margin-top:2px;">Schematic kinematic visualization — not a physics simulation · drift arrays are synthetic</div>
     </div>
     <span class="pill">Phase 4 ✓ MuJoCo</span>
-    <span class="pill pill-blue">Figure 03 · Oct 2025</span>
+    <span class="pill pill-blue">Industrial Arms · Oct 2025</span>
   </div>
 
   <div id="legend">
@@ -467,84 +467,40 @@ const bmsCover = new THREE.Group(); scene.add(bmsCover); bmsCover.position.copy(
   ledRow.position.set(0.08, 0.022, 0); bmsCover.add(ledRow);
 }
 
-// ── Robot Body (Figure 03 aesthetic) ─────────────────────────────────────────
-// Figure 03: off-white cream fabric textile, charcoal joint rings, wide horizontal camera strip.
-function buildBody(xOff, activeSide) {
-  // activeSide: +1 → active arm is at xOff + 0.14 (body's +x side faces table)
-  //             -1 → active arm is at xOff - 0.14
-  const root = new THREE.Group();
-  root.position.set(xOff, 0, 0);
-  scene.add(root);
+// ── Industrial Arm Mount ──────────────────────────────────────────────────────
+// Floor-anchored pedestal column that the kinematic arm attaches to.
+function buildMount(xOff) {
+  const g = new THREE.Group();
+  g.position.set(xOff, 0, 0);
+  scene.add(g);
 
-  function add(mesh) { mesh.castShadow = true; mesh.receiveShadow = true; root.add(mesh); return mesh; }
+  function add(m) { m.castShadow = true; m.receiveShadow = true; g.add(m); return m; }
   function bx(w,h,d,mat,x,y,z) { const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); m.position.set(x,y,z); return add(m); }
   function cy(rt,rb,h,seg,mat,x,y,z) { const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg),mat); m.position.set(x,y,z); return add(m); }
-  function sp(r,mat,x,y,z) { const m=new THREE.Mesh(new THREE.SphereGeometry(r,14,10),mat); m.position.set(x,y,z); root.add(m); return m; }
 
-  // ── Feet ──
-  for (const fx of [-0.07, 0.07]) {
-    bx(0.10, 0.04, 0.20, M.fabric, fx,  0.020,  0.02);
-    bx(0.08, 0.028, 0.06, M.joint, fx,  0.014, -0.08); // heel
-  }
-  // Ankle joint rings
-  for (const fx of [-0.07, 0.07]) sp(0.032, M.joint, fx, 0.050, 0);
+  // Anchor plate bolted to floor
+  bx(0.22, 0.028, 0.22, M.dark, 0, 0.014, 0);
+  // Corner bolt heads
+  for (const [bx_, bz_] of [[-0.08,-0.08],[-0.08,0.08],[0.08,-0.08],[0.08,0.08]])
+    cy(0.009, 0.009, 0.022, 8, M.joint, bx_, 0.029, bz_);
 
-  // ── Shins (fabric-covered cylinders) ──
-  for (const fx of [-0.07, 0.07]) cy(0.038, 0.034, 0.32, 8, M.fabric, fx, 0.210, 0);
+  // Main column
+  cy(0.034, 0.038, 0.98, 12, M.dark, 0, 0.51, 0);
+  // Mid-column reinforcement collar
+  cy(0.050, 0.050, 0.024, 12, M.joint, 0, 0.52, 0);
+  // Cable conduit strip running up back of column
+  bx(0.014, 0.88, 0.010, M.joint, 0, 0.51, -0.030);
 
-  // ── Knee rings ──
-  for (const fx of [-0.07, 0.07]) sp(0.038, M.joint, fx, 0.370, 0);
-
-  // ── Thighs ──
-  for (const fx of [-0.07, 0.07]) cy(0.046, 0.040, 0.24, 8, M.fabric, fx, 0.510, 0);
-
-  // ── Hip / Pelvis ──
-  bx(0.24, 0.06, 0.14, M.fabric, 0, 0.660, 0);
-  bx(0.20, 0.04, 0.10, M.joint,  0, 0.640, 0); // hip ring
-  // Hip LED strip
-  { const l = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.007, 0.006), M.led_b); l.position.set(0, 0.670, 0.072); root.add(l); }
-
-  // ── Torso ──
-  bx(0.30, 0.22, 0.16, M.fabric,  0, 0.810, 0); // lower torso
-  bx(0.32, 0.22, 0.17, M.fabric,  0, 0.970, 0); // upper torso / chest
-  bx(0.26, 0.16, 0.06, M.dark,    0, 0.970, 0.095); // chest recess panel
-  // LED status strip (horizontal) on chest
-  { const l = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.010, 0.008), M.led_b); l.position.set(0, 1.000, 0.100); root.add(l); }
-  // VW logo placeholder (small circle)
-  { const lv = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.006, 12), M.led_b); lv.position.set(0, 0.930, 0.103); root.add(lv); }
-
-  // ── Shoulder joint caps ──
-  sp(0.052, M.joint, -activeSide * 0.18, 1.040, 0); // active arm shoulder (toward table)
-  sp(0.048, M.joint,  activeSide * 0.18, 1.040, 0); // static arm shoulder
-
-  // ── Neck ──
-  cy(0.026, 0.030, 0.09, 10, M.joint, 0, 1.090, 0);
-
-  // ── Head (fabric-covered box, slightly taller than wide) ──
-  bx(0.20, 0.26, 0.20, M.fabric, 0, 1.240, 0);
-  // Wide horizontal camera sensor bar (Figure 03's most distinctive feature)
-  // Spans ~90% of face width, positioned in upper-middle of face
-  { const v = new THREE.Mesh(new THREE.BoxGeometry(0.182, 0.038, 0.016), M.visor); v.position.set(0, 1.250, 0.107); root.add(v); }
-  // Narrow secondary strip (LiDAR / depth sensor)
-  { const v2 = new THREE.Mesh(new THREE.BoxGeometry(0.100, 0.014, 0.010), M.led_b); v2.position.set(0, 1.278, 0.107); root.add(v2); }
-  // Side ear/sensor bumps
-  for (const sx of [-0.102, 0.102]) sp(0.016, M.joint, sx, 1.255, 0.02);
-  // Chin strip (microphone array)
-  { const chin = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.010, 0.008), M.joint); chin.position.set(0, 1.164, 0.100); root.add(chin); }
-
-  // ── Static arm (hanging at side, opposite to active arm) ──
-  const sx = activeSide * 0.20;  // static arm X
-  sp(0.036, M.joint,  sx, 1.040, 0); // shoulder ball
-  cy(0.030, 0.026, 0.26, 8, M.fabric, sx * 1.03, 0.900, 0); // upper arm
-  sp(0.026, M.joint,  sx * 1.05, 0.755, 0); // elbow
-  cy(0.024, 0.022, 0.22, 8, M.fabric, sx * 1.06, 0.610, 0); // forearm
-  bx(0.056, 0.048, 0.028, M.fabric, sx * 1.07, 0.476, 0.010); // hand
-
-  return root;
+  // Top mounting yoke
+  bx(0.090, 0.065, 0.060, M.dark, 0, SH_Y, 0);
+  bx(0.016, 0.054, 0.060, M.joint, -0.053, SH_Y, 0); // left ear
+  bx(0.016, 0.054, 0.060, M.joint,  0.053, SH_Y, 0); // right ear
+  // Status LED ring just below yoke
+  cy(0.044, 0.044, 0.007, 12, M.led_b, 0, SH_Y - 0.040, 0);
 }
 
-buildBody(-0.32, +1); // left robot: active arm faces right (+x toward table)
-buildBody( 0.32, -1); // right robot: active arm faces left (−x toward table)
+buildMount(-0.18); // left arm pedestal
+buildMount( 0.18); // right arm pedestal
 
 // ── Arm builder ───────────────────────────────────────────────────────────────
 function buildArm(armMat, jntMat) {
